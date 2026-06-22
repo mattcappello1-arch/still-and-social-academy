@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  --cream: #F5F1DD;
+  --cream-soft: #EFEAD2;
+  --oatmeal: #C9BDA5;
+  --oatmeal-dk: #A99B7F;
+  --rosewood: #7E5B5F;
+  --sienna: #9F5136;
+  --sienna-dk: #7E3F26;
+  --coffee: #59493A;
+  --charcoal: #241F21;
+  --olive: #867B3A;
+  --sage: #5A6051;
+  --sage-deep: #444A3D;
+  --ink: #2B2620;
+  --ink-soft: #5C544A;
+  --rule: rgba(43, 38, 32, 0.12);
+}
+
+@theme inline {
+  --color-cream: var(--cream);
+  --color-cream-soft: var(--cream-soft);
+  --color-oatmeal: var(--oatmeal);
+  --color-oatmeal-dk: var(--oatmeal-dk);
+  --color-rosewood: var(--rosewood);
+  --color-sienna: var(--sienna);
+  --color-sienna-dk: var(--sienna-dk);
+  --color-coffee: var(--coffee);
+  --color-charcoal: var(--charcoal);
+  --color-olive: var(--olive);
+  --color-sage: var(--sage);
+  --color-sage-deep: var(--sage-deep);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-rule: var(--rule);
+  --font-serif: var(--font-cormorant);
+  --font-mono: var(--font-source-code-pro);
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--cream-soft); }
+::-webkit-scrollbar-thumb { background: var(--oatmeal); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--oatmeal-dk); }
