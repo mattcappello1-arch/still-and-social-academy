@@ -2,6 +2,18 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+async function updatePath(formData: FormData) {
+  "use server";
+  const pathId = String(formData.get("path_id"));
+  const title = String(formData.get("path_title")).trim();
+  const description = String(formData.get("path_description")).trim();
+  if (!pathId || !title) return;
+
+  const db = await createAdminClient();
+  await db.from("academy_training_paths").update({ title, description: description || null }).eq("id", pathId);
+  redirect(`/admin/training/${pathId}`);
+}
+
 async function addModule(formData: FormData) {
   "use server";
   const pathId = String(formData.get("path_id"));
@@ -65,6 +77,19 @@ export default async function AdminTrainingPathPage({
         <Link href="/admin/training" className="text-sienna text-sm hover:underline">&larr; All Training Paths</Link>
         <h1 className="font-serif text-3xl text-charcoal font-light mt-2">{path.title}</h1>
         <p className="text-ink-soft text-sm mt-1">{path.description}</p>
+        <details className="mt-4">
+          <summary className="font-mono text-xs text-sienna cursor-pointer hover:underline">Edit path details</summary>
+          <form action={updatePath} className="mt-3 space-y-3 max-w-md">
+            <input type="hidden" name="path_id" value={pathId} />
+            <input name="path_title" defaultValue={path.title} required
+              className="w-full bg-white border border-rule rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-olive" />
+            <textarea name="path_description" defaultValue={path.description || ""} rows={2}
+              className="w-full bg-white border border-rule rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-olive resize-none" />
+            <button type="submit" className="bg-charcoal text-cream px-4 py-2 rounded-lg text-sm hover:bg-coffee transition">
+              Update Path
+            </button>
+          </form>
+        </details>
       </div>
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-8">
@@ -80,7 +105,7 @@ export default async function AdminTrainingPathPage({
           ) : (
             <div className="divide-y divide-rule">
               {modules.map((m: any, i: number) => (
-                <div key={m.id} className="px-5 py-4 flex items-start gap-4">
+                <a key={m.id} href={`/admin/training/${pathId}/${m.id}`} className="px-5 py-4 flex items-start gap-4 hover:bg-oatmeal/10 transition">
                   <span className="font-mono text-[10px] text-ink-soft mt-1 w-6 shrink-0">{String(i + 1).padStart(2, "0")}</span>
                   <div className="flex-1">
                     <div className="font-medium text-ink">{m.title}</div>
@@ -89,7 +114,8 @@ export default async function AdminTrainingPathPage({
                   <span className="font-mono text-[10px] text-ink-soft shrink-0">
                     {m.estimated_minutes ? `${m.estimated_minutes} min` : ""}
                   </span>
-                </div>
+                  <span className="text-sienna text-xs shrink-0">&rarr;</span>
+                </a>
               ))}
             </div>
           )}
