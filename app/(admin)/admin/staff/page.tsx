@@ -129,7 +129,9 @@ export default async function StaffListPage({
                       className="border-b border-rule transition last:border-b-0 hover:bg-cream-soft/30"
                     >
                       <td className="px-4 py-3 font-mono text-sm font-medium text-ink">
-                        {s.first_name} {s.last_name}
+                        <a href={`/admin/staff/${s.id}`} className="hover:text-sienna transition">
+                          {s.first_name} {s.last_name}
+                        </a>
                       </td>
                       <td className="px-4 py-3 font-mono text-sm text-ink-soft">
                         {s.email}
