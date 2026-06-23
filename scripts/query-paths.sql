@@ -1,0 +1,1 @@
+SELECT id, slug, title FROM academy_training_paths ORDER BY sort_order;

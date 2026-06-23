@@ -1,0 +1,138 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+
+export async function startModule(moduleId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('academy_staff_module_progress')
+    .upsert(
+      {
+        staff_id: user.id,
+        module_id: moduleId,
+        status: 'in_progress',
+        started_at: new Date().toISOString(),
+      },
+      { onConflict: 'staff_id,module_id', ignoreDuplicates: false }
+    )
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function markModuleComplete(moduleId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('academy_staff_module_progress')
+    .upsert(
+      {
+        staff_id: user.id,
+        module_id: moduleId,
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+      },
+      { onConflict: 'staff_id,module_id', ignoreDuplicates: false }
+    )
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function submitQuiz(
+  moduleId: string,
+  quizId: string,
+  answers: Record<number, number>
+) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  // Fetch quiz
+  const { data: quiz, error: quizError } = await supabase
+    .from('academy_quizzes')
+    .select('*')
+    .eq('id', quizId)
+    .single()
+
+  if (quizError || !quiz) return { error: 'Quiz not found' }
+
+  const questions = quiz.questions as Array<{
+    question: string
+    options: string[]
+    correct: number
+  }>
+
+  // Grade
+  let correct = 0
+  const results: Array<{
+    question: string
+    selected: number
+    correct: number
+    isCorrect: boolean
+  }> = []
+
+  questions.forEach((q, i) => {
+    const selected = answers[i] ?? -1
+    const isCorrect = selected === q.correct
+    if (isCorrect) correct++
+    results.push({
+      question: q.question,
+      selected,
+      correct: q.correct,
+      isCorrect,
+    })
+  })
+
+  const score = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0
+  const passed = score >= (quiz.pass_score ?? 80)
+
+  // Get current attempt count
+  const { data: existing } = await supabase
+    .from('academy_staff_module_progress')
+    .select('quiz_attempts')
+    .eq('staff_id', user.id)
+    .eq('module_id', moduleId)
+    .single()
+
+  const attempts = (existing?.quiz_attempts ?? 0) + 1
+
+  // Update progress
+  const progressData: Record<string, unknown> = {
+    staff_id: user.id,
+    module_id: moduleId,
+    quiz_score: score,
+    quiz_attempts: attempts,
+  }
+
+  if (passed) {
+    progressData.status = 'completed'
+    progressData.completed_at = new Date().toISOString()
+  } else {
+    progressData.status = 'in_progress'
+  }
+
+  await supabase
+    .from('academy_staff_module_progress')
+    .upsert(progressData, { onConflict: 'staff_id,module_id', ignoreDuplicates: false })
+
+  return {
+    success: true,
+    score,
+    passed,
+    passScore: quiz.pass_score,
+    results,
+    attempts,
+  }
+}
