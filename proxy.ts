@@ -38,6 +38,7 @@ export async function proxy(request: NextRequest) {
   const isPublicRoute =
     pathname === '/login' ||
     pathname.startsWith('/accept-invite') ||
+    pathname.startsWith('/sign/') ||
     pathname === '/auth/callback'
 
   if (isPublicRoute) {

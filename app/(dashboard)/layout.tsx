@@ -106,6 +106,11 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
               label="Documents"
               icon="files"
             />
+            <SidebarLink
+              href="/admin/signing"
+              label="Signing"
+              icon="pen"
+            />
           </div>
         )}
       </nav>
@@ -140,6 +145,8 @@ function SidebarLink({
       'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
     files:
       'M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9l-7-7z M13 2v7h7',
+    pen:
+      'M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z',
   }
 
   return (
