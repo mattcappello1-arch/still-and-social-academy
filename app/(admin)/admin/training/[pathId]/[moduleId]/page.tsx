@@ -157,7 +157,11 @@ export default async function EditModulePage({
                   <label className="block font-mono text-[10px] tracking-[0.2em] uppercase text-ink-soft mb-1.5">Questions (JSON)</label>
                   <textarea name="questions_json" defaultValue={JSON.stringify(quiz.questions, null, 2)} rows={12}
                     className="w-full bg-white border border-rule rounded-lg px-3 py-2.5 text-xs font-mono focus:outline-none focus:border-olive resize-y" />
-                  <p className="text-[10px] text-ink-soft mt-1">Format: [{"{"}&quot;question&quot;:&quot;...&quot;, &quot;options&quot;:[...], &quot;correct&quot;:0, &quot;explanation&quot;:&quot;...&quot;{"}"}]</p>
+                  <p className="text-[10px] text-ink-soft mt-1">
+                    Multiple choice: [{"{"}&quot;question&quot;:&quot;...&quot;, &quot;options&quot;:[...], &quot;correct&quot;:0{"}"}]<br/>
+                    Reflection: [{"{"}&quot;type&quot;:&quot;reflection&quot;, &quot;question&quot;:&quot;...&quot;, &quot;minLength&quot;:50{"}"}]<br/>
+                    Scenario: [{"{"}&quot;type&quot;:&quot;scenario&quot;, &quot;question&quot;:&quot;...&quot;, &quot;context&quot;:&quot;...&quot;, &quot;minLength&quot;:30{"}"}]
+                  </p>
                 </div>
 
                 <button type="submit" className="w-full bg-charcoal text-cream text-sm py-2.5 rounded-lg hover:bg-coffee transition">

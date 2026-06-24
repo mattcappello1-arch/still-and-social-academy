@@ -128,6 +128,19 @@ export default async function PassportPage() {
   const hasStartedWay = pathProgress.some((p: any) => p.slug === 'the-still-and-social-way' && p.completed > 0)
   const hasCerts = (certs?.length ?? 0) > 0
   const hasCheckedIn = (wellbeingCheckin?.length ?? 0) > 0
+
+  // Check for wellbeing check-in this month
+  const now2 = new Date()
+  const monthStart = new Date(now2.getFullYear(), now2.getMonth(), 1).toISOString()
+  const monthEnd = new Date(now2.getFullYear(), now2.getMonth() + 1, 0, 23, 59, 59).toISOString()
+  const { data: thisMonthCheckin } = await supabase
+    .from('academy_wellbeing_checkins')
+    .select('id')
+    .eq('staff_id', user.id)
+    .gte('created_at', monthStart)
+    .lte('created_at', monthEnd)
+    .limit(1)
+  const hasCheckedInThisMonth = (thisMonthCheckin?.length ?? 0) > 0
   const isNewStaff = overallCompleted === 0 && !hasCerts && pendingSigningCount === 0
 
   const onboardingItems = [
@@ -245,6 +258,27 @@ export default async function PassportPage() {
           <p className="mt-2 font-mono text-xs text-ink-soft">{pendingSigningCount > 0 ? 'Awaiting signature' : 'All signed'}</p>
         </div>
       </div>
+
+      {/* Monthly wellbeing check-in prompt */}
+      {!hasCheckedInThisMonth && (
+        <div className="mb-8 rounded-xl border border-olive/20 bg-olive/5 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-serif text-xl font-light text-ink">Monthly Check-in</h2>
+              <p className="mt-1 font-mono text-sm text-ink-soft">
+                How are you feeling? Take a moment to check in with yourself.
+              </p>
+            </div>
+            <Link
+              href="/wellbeing"
+              className="flex items-center gap-2 rounded-lg bg-olive px-5 py-2.5 font-mono text-sm font-medium tracking-wide text-cream transition hover:bg-olive/90"
+            >
+              Check In
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Next up / Onboarding */}
       {nextModule && hasStartedTraining ? (

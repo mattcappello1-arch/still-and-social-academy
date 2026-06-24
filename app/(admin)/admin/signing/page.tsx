@@ -1,7 +1,22 @@
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { effectiveStatus, STATUS_META, type AssignmentStatus } from "@/lib/status";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+
+async function markDocumentComplete(formData: FormData) {
+  "use server";
+  const assignmentId = String(formData.get("assignment_id"));
+  if (!assignmentId) return;
+
+  const db = await createAdminClient();
+  await db.from("academy_signing_assignments").update({
+    status: "signed",
+    signed_at: new Date().toISOString(),
+    signer_name: "Completed externally",
+  }).eq("id", assignmentId);
+
+  redirect("/admin/signing");
+}
 
 export default async function SigningDashboard() {
   const db = await createAdminClient();
@@ -12,13 +27,28 @@ export default async function SigningDashboard() {
     .order("created_at", { ascending: false })
     .limit(50);
 
+  // Get audit logs for signed assignments to show IP / user agent
+  const signedIds = (assignments ?? [])
+    .filter((a: any) => a.status === "signed" || a.signed_at)
+    .map((a: any) => a.id);
+
+  const { data: auditLogs } = signedIds.length
+    ? await db
+        .from("academy_signing_audit")
+        .select("assignment_id, event_type, ip_address, user_agent, occurred_at")
+        .in("assignment_id", signedIds)
+        .eq("event_type", "signed")
+    : { data: [] };
+
+  const auditMap = new Map((auditLogs ?? []).map((a: any) => [a.assignment_id, a]));
+
   const { data: templates } = await db
     .from("academy_signing_templates")
     .select("id, title, doc_type")
     .order("created_at", { ascending: false });
 
   const stats = { draft: 0, sent: 0, viewed: 0, signed: 0, expired: 0 };
-  (assignments ?? []).forEach((a) => {
+  (assignments ?? []).forEach((a: any) => {
     const s = effectiveStatus(a);
     stats[s]++;
   });
@@ -71,18 +101,25 @@ export default async function SigningDashboard() {
                 <th className="px-5 py-3 font-mono text-[10px] tracking-wider uppercase text-ink-soft font-normal">Status</th>
                 <th className="px-5 py-3 font-mono text-[10px] tracking-wider uppercase text-ink-soft font-normal">Sent</th>
                 <th className="px-5 py-3 font-mono text-[10px] tracking-wider uppercase text-ink-soft font-normal">Signed</th>
+                <th className="px-5 py-3 font-mono text-[10px] tracking-wider uppercase text-ink-soft font-normal">Actions</th>
               </tr>
             </thead>
             <tbody>
               {assignments.map((a: any) => {
                 const status = effectiveStatus(a);
                 const meta = STATUS_META[status];
+                const audit = auditMap.get(a.id);
+                const isNotSigned = status !== 'signed';
                 return (
                   <tr key={a.id} className="border-b border-rule last:border-0 hover:bg-oatmeal/10">
                     <td className="px-5 py-3 text-ink">
                       {a.academy_staff?.first_name} {a.academy_staff?.last_name}
+                      <span className="block text-[10px] text-ink-soft">{a.academy_staff?.email}</span>
                     </td>
-                    <td className="px-5 py-3 text-ink-soft">{a.academy_signing_documents?.title}</td>
+                    <td className="px-5 py-3 text-ink-soft">
+                      {a.academy_signing_documents?.title}
+                      <span className="block text-[10px] text-ink-soft">{a.academy_signing_documents?.doc_type}</span>
+                    </td>
                     <td className="px-5 py-3">
                       <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider ${meta.cls}`}>
                         {meta.label}
@@ -91,8 +128,31 @@ export default async function SigningDashboard() {
                     <td className="px-5 py-3 text-ink-soft text-xs">
                       {a.sent_at ? new Date(a.sent_at).toLocaleDateString("en-AU") : "-"}
                     </td>
-                    <td className="px-5 py-3 text-ink-soft text-xs">
-                      {a.signed_at ? new Date(a.signed_at).toLocaleDateString("en-AU") : "-"}
+                    <td className="px-5 py-3 text-xs">
+                      {a.signed_at ? (
+                        <div>
+                          <span className="text-ink-soft">{new Date(a.signed_at).toLocaleDateString("en-AU")}</span>
+                          {a.signer_name && (
+                            <span className="block text-[10px] text-ink-soft">By: {a.signer_name}</span>
+                          )}
+                          {audit?.ip_address && (
+                            <span className="block text-[10px] text-ink-soft">IP: {audit.ip_address}</span>
+                          )}
+                        </div>
+                      ) : "-"}
+                    </td>
+                    <td className="px-5 py-3">
+                      {isNotSigned && (
+                        <form action={markDocumentComplete}>
+                          <input type="hidden" name="assignment_id" value={a.id} />
+                          <button
+                            type="submit"
+                            className="rounded-lg border border-sage/30 bg-sage/5 px-3 py-1.5 font-mono text-[10px] tracking-wider text-sage-deep uppercase transition hover:bg-sage/20"
+                          >
+                            Mark Complete
+                          </button>
+                        </form>
+                      )}
                     </td>
                   </tr>
                 );

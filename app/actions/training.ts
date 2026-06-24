@@ -64,7 +64,8 @@ export async function markModuleComplete(moduleId: string) {
 export async function submitQuiz(
   moduleId: string,
   quizId: string,
-  answers: Record<number, number>
+  answers: Record<number, number>,
+  textAnswers?: Record<number, string>
 ) {
   const supabase = await createClient()
   const {
@@ -83,8 +84,11 @@ export async function submitQuiz(
 
   const questions = quiz.questions as Array<{
     question: string
-    options: string[]
-    correct: number
+    options?: string[]
+    correct?: number
+    type?: 'multiple_choice' | 'reflection' | 'scenario'
+    minLength?: number
+    context?: string
   }>
 
   // Grade
@@ -94,18 +98,34 @@ export async function submitQuiz(
     selected: number
     correct: number
     isCorrect: boolean
+    textAnswer?: string
   }> = []
 
   questions.forEach((q, i) => {
-    const selected = answers[i] ?? -1
-    const isCorrect = selected === q.correct
-    if (isCorrect) correct++
-    results.push({
-      question: q.question,
-      selected,
-      correct: q.correct,
-      isCorrect,
-    })
+    const type = q.type || 'multiple_choice'
+
+    if (type === 'reflection' || type === 'scenario') {
+      const text = textAnswers?.[i] || ''
+      const meetsMin = text.length >= (q.minLength ?? 1)
+      if (meetsMin) correct++
+      results.push({
+        question: q.question,
+        selected: -1,
+        correct: -1,
+        isCorrect: meetsMin,
+        textAnswer: text,
+      })
+    } else {
+      const selected = answers[i] ?? -1
+      const isCorrect = selected === (q.correct ?? -1)
+      if (isCorrect) correct++
+      results.push({
+        question: q.question,
+        selected,
+        correct: q.correct ?? 0,
+        isCorrect,
+      })
+    }
   })
 
   const score = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0

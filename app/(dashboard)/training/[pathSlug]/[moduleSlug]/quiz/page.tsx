@@ -55,15 +55,24 @@ export default async function QuizPage({
 
   const questions = (quiz.questions ?? []) as Array<{
     question: string
-    options: string[]
-    correct: number
+    options?: string[]
+    correct?: number
+    type?: 'multiple_choice' | 'reflection' | 'scenario'
+    context?: string
+    minLength?: number
   }>
 
   // Strip correct answers for client — don't expose
-  const clientQuestions = questions.map((q) => ({
-    question: q.question,
-    options: q.options,
-  }))
+  const clientQuestions = questions.map((q) => {
+    const type = q.type || 'multiple_choice'
+    if (type === 'reflection') {
+      return { question: q.question, type: q.type, minLength: q.minLength }
+    }
+    if (type === 'scenario') {
+      return { question: q.question, type: q.type, context: q.context, minLength: q.minLength }
+    }
+    return { question: q.question, options: q.options }
+  })
 
   return (
     <div className="mx-auto max-w-3xl">
