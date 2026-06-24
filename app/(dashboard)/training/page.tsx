@@ -129,66 +129,117 @@ export default async function TrainingPage() {
     universal: 'bg-coffee/10 text-coffee border-coffee/20',
   }
 
+  // Group paths by department
+  const departmentOrder = ['universal', 'foh', 'kitchen', 'leadership']
+  const departmentLabels: Record<string, string> = {
+    universal: 'Universal',
+    foh: 'Front of House',
+    kitchen: 'Kitchen',
+    leadership: 'Leadership',
+  }
+
+  const groupedPaths = departmentOrder
+    .map((dept) => ({
+      department: dept,
+      label: departmentLabels[dept] ?? dept,
+      paths: paths.filter((p) => p.department === dept),
+    }))
+    .filter((g) => g.paths.length > 0)
+
+  const overallCompleted = paths.reduce((s, p) => s + p.completedCount, 0)
+  const overallTotal = paths.reduce((s, p) => s + p.moduleCount, 0)
+  const overallPct = overallTotal > 0 ? Math.round((overallCompleted / overallTotal) * 100) : 0
+
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-8">
         <h1 className="font-serif text-3xl font-light text-ink">Training</h1>
         <p className="mt-1 font-mono text-sm text-ink-soft">
-          Your assigned training paths and progress
+          Complete your assigned training paths to build your skills and knowledge. Each path contains modules covering specific topics for your role.
         </p>
       </div>
 
+      {/* Overall progress summary */}
+      {paths.length > 0 && (
+        <div className="mb-8 rounded-xl border border-rule bg-white/60 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="font-mono text-[10px] tracking-widest text-ink-soft uppercase">Overall Progress</p>
+            <p className="font-mono text-sm text-ink">{overallCompleted} of {overallTotal} modules completed</p>
+          </div>
+          <ProgressBar value={overallPct} size="md" />
+        </div>
+      )}
+
       {paths.length > 0 ? (
-        <div className="space-y-4">
-          {paths.map((path) => (
-            <Link
-              key={path.id}
-              href={`/training/${path.slug}`}
-              className="block rounded-xl border border-rule bg-white/60 p-5 transition hover:border-sienna/30 hover:shadow-sm"
-            >
-              <div className="mb-3 flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                    <h2 className="font-serif text-xl font-light text-ink">
-                      {path.title}
-                    </h2>
-                    <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-wide uppercase ${departmentColors[path.department] ?? departmentColors.universal}`}
-                    >
-                      {path.department}
-                    </span>
-                    {path.isRequired && (
-                      <span className="inline-flex rounded-full border border-rosewood/20 bg-rosewood/10 px-2 py-0.5 font-mono text-[10px] tracking-wide text-rosewood uppercase">
-                        Required
-                      </span>
+        <div className="space-y-8">
+          {groupedPaths.map((group) => (
+            <section key={group.department}>
+              <h2 className="mb-3 flex items-center gap-2 font-serif text-xl font-light text-ink">
+                {group.label}
+                <span className="font-mono text-xs text-ink-soft font-normal">
+                  ({group.paths.length} {group.paths.length === 1 ? 'path' : 'paths'})
+                </span>
+              </h2>
+              <div className="space-y-3">
+                {group.paths.map((path) => (
+                  <Link
+                    key={path.id}
+                    href={`/training/${path.slug}`}
+                    className="group block rounded-xl border border-rule bg-white/60 p-5 transition hover:border-sienna/30 hover:shadow-md hover:-translate-y-[1px]"
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-4">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        {/* Completion indicator */}
+                        {path.percent === 100 ? (
+                          <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sage/20">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-sage"><path d="M20 6L9 17l-5-5" /></svg>
+                          </div>
+                        ) : (
+                          <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-oatmeal/40">
+                            <div className="h-2 w-2 rounded-full" style={{ background: path.percent > 0 ? 'var(--sienna)' : 'transparent' }} />
+                          </div>
+                        )}
+                        <div>
+                          <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <h3 className="font-serif text-lg font-light text-ink group-hover:text-sienna transition">
+                              {path.title}
+                            </h3>
+                            {path.isRequired && (
+                              <span className="inline-flex rounded-full border border-rosewood/20 bg-rosewood/10 px-2 py-0.5 font-mono text-[10px] tracking-wide text-rosewood uppercase">
+                                Required
+                              </span>
+                            )}
+                          </div>
+                          {path.description && (
+                            <p className="font-mono text-sm text-ink-soft">
+                              {path.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        <p className="font-serif text-2xl font-light text-ink">
+                          {path.percent}%
+                        </p>
+                        <p className="font-mono text-[10px] text-ink-soft">
+                          {path.completedCount}/{path.moduleCount} modules
+                        </p>
+                      </div>
+                    </div>
+
+                    <ProgressBar value={path.percent} showLabel={false} size="sm" />
+
+                    {path.inProgressCount > 0 && (
+                      <p className="mt-2 font-mono text-xs text-sienna">
+                        {path.inProgressCount} module
+                        {path.inProgressCount > 1 ? 's' : ''} in progress
+                      </p>
                     )}
-                  </div>
-                  {path.description && (
-                    <p className="font-mono text-sm text-ink-soft">
-                      {path.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="shrink-0 text-right">
-                  <p className="font-serif text-2xl font-light text-ink">
-                    {path.percent}%
-                  </p>
-                  <p className="font-mono text-[10px] text-ink-soft">
-                    {path.completedCount}/{path.moduleCount} modules
-                  </p>
-                </div>
+                  </Link>
+                ))}
               </div>
-
-              <ProgressBar value={path.percent} showLabel={false} size="sm" />
-
-              {path.inProgressCount > 0 && (
-                <p className="mt-2 font-mono text-xs text-sienna">
-                  {path.inProgressCount} module
-                  {path.inProgressCount > 1 ? 's' : ''} in progress
-                </p>
-              )}
-            </Link>
+            </section>
           ))}
         </div>
       ) : (

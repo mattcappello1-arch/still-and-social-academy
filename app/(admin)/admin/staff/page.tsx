@@ -5,11 +5,13 @@ import type { Role } from '@/lib/utils/roles'
 export default async function StaffListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; role?: string; success?: string }>
+  searchParams: Promise<{ q?: string; role?: string; department?: string; status?: string; success?: string }>
 }) {
   const params = await searchParams
   const query = params.q ?? ''
   const roleFilter = params.role ?? ''
+  const departmentFilter = params.department ?? ''
+  const statusFilter = params.status ?? ''
   const success = params.success
 
   const supabase = await createClient()
@@ -29,7 +31,17 @@ export default async function StaffListPage({
     staffQuery = staffQuery.eq('role', roleFilter)
   }
 
+  if (departmentFilter) {
+    staffQuery = staffQuery.eq('department', departmentFilter)
+  }
+
+  if (statusFilter) {
+    staffQuery = staffQuery.eq('status', statusFilter)
+  }
+
   const { data: staff } = await staffQuery
+
+  const activeFilters = [query, roleFilter, departmentFilter, statusFilter].filter(Boolean).length
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -38,31 +50,44 @@ export default async function StaffListPage({
           <h1 className="font-serif text-3xl font-light text-ink">Staff</h1>
           <p className="mt-1 font-mono text-sm text-ink-soft">
             Manage your team members
+            {staff && <span className="ml-1">({staff.length} {staff.length === 1 ? 'member' : 'members'})</span>}
           </p>
         </div>
         <a
           href="/admin/staff/new"
-          className="rounded-lg bg-charcoal px-4 py-2.5 font-mono text-sm font-medium tracking-wide text-cream transition hover:bg-sienna active:scale-[0.98]"
+          className="flex items-center gap-2 rounded-lg bg-charcoal px-4 py-2.5 font-mono text-sm font-medium tracking-wide text-cream transition hover:bg-sienna active:scale-[0.98]"
         >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6M23 11h-6" /></svg>
           Invite Staff
         </a>
       </div>
 
       {success && (
-        <div className="mb-4 rounded-lg border border-sage/20 bg-sage/5 px-4 py-3 font-mono text-sm text-sage">
-          {success}
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-sage/20 bg-sage/5 px-4 py-3">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sage shrink-0"><path d="M20 6L9 17l-5-5" /></svg>
+          <p className="font-mono text-sm text-sage">{success}</p>
         </div>
       )}
 
-      {/* Search + Filter */}
-      <form className="mb-6 flex flex-col gap-3 sm:flex-row">
+      {/* Search + Filters */}
+      <form className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <input
           name="q"
           type="text"
           defaultValue={query}
           placeholder="Search by name or email..."
-          className="flex-1 rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm text-ink placeholder:text-oatmeal-dk outline-none transition focus:border-sienna/40 focus:ring-1 focus:ring-sienna/20"
+          className="flex-1 min-w-[200px] rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm text-ink placeholder:text-oatmeal-dk outline-none transition focus:border-sienna/40 focus:ring-1 focus:ring-sienna/20"
         />
+        <select
+          name="department"
+          defaultValue={departmentFilter}
+          className="rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm text-ink outline-none transition focus:border-sienna/40 focus:ring-1 focus:ring-sienna/20"
+        >
+          <option value="">All Departments</option>
+          <option value="foh">Front of House</option>
+          <option value="kitchen">Kitchen</option>
+          <option value="leadership">Leadership</option>
+        </select>
         <select
           name="role"
           defaultValue={roleFilter}
@@ -88,12 +113,32 @@ export default async function StaffListPage({
             </option>
           ))}
         </select>
-        <button
-          type="submit"
-          className="rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm text-ink transition hover:bg-oatmeal/20"
+        <select
+          name="status"
+          defaultValue={statusFilter}
+          className="rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm text-ink outline-none transition focus:border-sienna/40 focus:ring-1 focus:ring-sienna/20"
         >
-          Filter
-        </button>
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="pending">Pending</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className="rounded-lg bg-charcoal px-4 py-2.5 font-mono text-sm font-medium tracking-wide text-cream transition hover:bg-sienna"
+          >
+            Filter
+          </button>
+          {activeFilters > 0 && (
+            <a
+              href="/admin/staff"
+              className="flex items-center rounded-lg border border-rule px-4 py-2.5 font-mono text-sm text-ink-soft transition hover:border-sienna/30 hover:text-sienna"
+            >
+              Clear
+            </a>
+          )}
+        </div>
       </form>
 
       {/* Staff table */}

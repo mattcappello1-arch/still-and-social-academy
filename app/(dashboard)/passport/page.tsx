@@ -98,12 +98,17 @@ export default async function PassportPage() {
     leadership: 'bg-rosewood/10 text-rosewood border-rosewood/20',
   }
 
+  // Time-based greeting
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const hasStartedTraining = overallCompleted > 0
+
   return (
     <div className="mx-auto max-w-4xl">
       {/* Welcome */}
       <div className="mb-8">
         <h1 className="font-serif text-3xl font-light text-ink">
-          {staff ? `Welcome, ${staff.first_name}` : 'Welcome to the Academy'}
+          {staff ? `${greeting}, ${staff.first_name}` : 'Welcome to the Academy'}
         </h1>
         <p className="mt-1 font-mono text-sm text-ink-soft">Your staff passport and training overview</p>
       </div>
@@ -152,16 +157,39 @@ export default async function PassportPage() {
         </div>
       </div>
 
-      {/* Next up */}
-      {nextModule && (
-        <div className="mb-8 rounded-xl border border-sienna/20 bg-sienna/5 p-5">
+      {/* Next up / Onboarding */}
+      {nextModule && hasStartedTraining ? (
+        <div className="mb-8 rounded-xl border-2 border-sienna/30 bg-sienna/5 p-6">
           <p className="font-mono text-[10px] tracking-widest text-sienna uppercase mb-2">Continue Where You Left Off</p>
           <Link href={`/training/${nextModule.pathSlug}/${nextModule.slug}`}
-            className="font-serif text-xl font-light text-ink hover:text-sienna transition">
-            {nextModule.title} &rarr;
+            className="flex items-center justify-between group">
+            <span className="font-serif text-xl font-light text-ink group-hover:text-sienna transition">
+              {nextModule.title}
+            </span>
+            <span className="flex items-center gap-2 rounded-lg bg-sienna px-4 py-2 font-mono text-xs font-medium tracking-wide text-cream transition group-hover:bg-sienna/90">
+              Continue
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition group-hover:translate-x-0.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+            </span>
           </Link>
         </div>
-      )}
+      ) : nextModule && !hasStartedTraining ? (
+        <div className="mb-8 rounded-xl border-2 border-sienna/30 bg-sienna/5 p-6">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sienna/20">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sienna"><path d="M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5" /></svg>
+            </div>
+            <div>
+              <p className="font-mono text-sm font-medium text-ink">Ready to get started?</p>
+              <p className="font-mono text-xs text-ink-soft">Begin your training journey with your first module</p>
+            </div>
+          </div>
+          <Link href={`/training/${nextModule.pathSlug}/${nextModule.slug}`}
+            className="mt-2 inline-flex items-center gap-2 rounded-lg bg-sienna px-5 py-2.5 font-mono text-sm font-medium tracking-wide text-cream transition hover:bg-sienna/90">
+            Start Your First Module
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+          </Link>
+        </div>
+      ) : null}
 
       {/* Training paths */}
       <section className="mb-8">
@@ -246,7 +274,13 @@ export default async function PassportPage() {
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-oatmeal bg-cream-soft/50 px-6 py-8 text-center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-2 text-oatmeal-dk"><path d="M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5" /></svg>
             <p className="font-mono text-sm text-ink-soft">Complete your first training module to see activity here.</p>
+            {nextModule && (
+              <Link href={`/training/${nextModule.pathSlug}/${nextModule.slug}`} className="mt-3 inline-block font-mono text-xs text-sienna hover:underline">
+                Start your first module &rarr;
+              </Link>
+            )}
           </div>
         )}
       </section>

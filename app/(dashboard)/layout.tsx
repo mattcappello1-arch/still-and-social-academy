@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
-import { LogoutButton, MobileSidebarToggle, Sidebar } from './components'
+import { LogoutButton, MobileSidebarToggle, Sidebar, SidebarLinkClient } from './components'
 
 export default async function DashboardLayout({
   children,
@@ -62,6 +62,18 @@ export default async function DashboardLayout({
   )
 }
 
+const SIDEBAR_ICONS: Record<string, string> = {
+  home: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z',
+  book: 'M4 19.5A2.5 2.5 0 016.5 17H20 M4 19.5A2.5 2.5 0 004 17V5a2 2 0 012-2h14v14H6.5',
+  file: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6',
+  user: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 3a4 4 0 100 8 4 4 0 000-8',
+  grid: 'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z',
+  users: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 3a4 4 0 100 8 4 4 0 000-8 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75',
+  layers: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
+  files: 'M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9l-7-7z M13 2v7h7',
+  pen: 'M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z',
+}
+
 function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
   return (
     <>
@@ -83,10 +95,10 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
           <p className="mb-2 px-3 font-mono text-[10px] tracking-widest text-cream/40 uppercase">
             Your Space
           </p>
-          <SidebarLink href="/passport" label="Passport" icon="home" />
-          <SidebarLink href="/training" label="Training" icon="book" />
-          <SidebarLink href="/documents" label="Documents" icon="file" />
-          <SidebarLink href="/profile" label="Profile" icon="user" />
+          <SidebarLinkClient href="/passport" label="Passport" iconPath={SIDEBAR_ICONS.home} />
+          <SidebarLinkClient href="/training" label="Training" iconPath={SIDEBAR_ICONS.book} />
+          <SidebarLinkClient href="/documents" label="Documents" iconPath={SIDEBAR_ICONS.file} />
+          <SidebarLinkClient href="/profile" label="Profile" iconPath={SIDEBAR_ICONS.user} />
         </div>
 
         {isAdmin && (
@@ -94,23 +106,11 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
             <p className="mb-2 px-3 font-mono text-[10px] tracking-widest text-cream/40 uppercase">
               Admin
             </p>
-            <SidebarLink href="/admin" label="Overview" icon="grid" />
-            <SidebarLink href="/admin/staff" label="Staff" icon="users" />
-            <SidebarLink
-              href="/admin/training"
-              label="Training Mgmt"
-              icon="layers"
-            />
-            <SidebarLink
-              href="/admin/documents"
-              label="Documents"
-              icon="files"
-            />
-            <SidebarLink
-              href="/admin/signing"
-              label="Signing"
-              icon="pen"
-            />
+            <SidebarLinkClient href="/admin" label="Overview" iconPath={SIDEBAR_ICONS.grid} />
+            <SidebarLinkClient href="/admin/staff" label="Staff" iconPath={SIDEBAR_ICONS.users} />
+            <SidebarLinkClient href="/admin/training" label="Training Mgmt" iconPath={SIDEBAR_ICONS.layers} />
+            <SidebarLinkClient href="/admin/documents" label="Documents" iconPath={SIDEBAR_ICONS.files} />
+            <SidebarLinkClient href="/admin/signing" label="Signing" iconPath={SIDEBAR_ICONS.pen} />
           </div>
         )}
       </nav>
@@ -121,53 +121,5 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
         </p>
       </div>
     </>
-  )
-}
-
-function SidebarLink({
-  href,
-  label,
-  icon,
-}: {
-  href: string
-  label: string
-  icon: string
-}) {
-  const icons: Record<string, string> = {
-    home: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z',
-    book: 'M4 19.5A2.5 2.5 0 016.5 17H20 M4 19.5A2.5 2.5 0 004 17V5a2 2 0 012-2h14v14H6.5',
-    file: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6',
-    user: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 3a4 4 0 100 8 4 4 0 000-8',
-    grid: 'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z',
-    users:
-      'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 3a4 4 0 100 8 4 4 0 000-8 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75',
-    layers:
-      'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
-    files:
-      'M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9l-7-7z M13 2v7h7',
-    pen:
-      'M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z',
-  }
-
-  return (
-    <a
-      href={href}
-      className="flex items-center gap-3 rounded-lg px-3 py-2 font-mono text-sm text-cream/70 transition hover:bg-white/5 hover:text-cream"
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="shrink-0"
-      >
-        <path d={icons[icon] || icons.home} />
-      </svg>
-      {label}
-    </a>
   )
 }

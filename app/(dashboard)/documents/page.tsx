@@ -48,14 +48,53 @@ export default async function DocumentsPage() {
     expired: 'bg-cream-soft text-ink-soft',
   }
 
+  const pendingCount = (documents ?? []).filter(
+    (d) => d.status === 'pending' || d.status === 'viewed'
+  ).length
+  const signedCount = (documents ?? []).filter(
+    (d) => d.status === 'signed'
+  ).length
+
+  const statusLabels: Record<string, string> = {
+    pending: 'Awaiting Review',
+    viewed: 'In Progress',
+    signed: 'Signed',
+    expired: 'Expired',
+  }
+
+  const statusIcons: Record<string, string> = {
+    pending: 'M12 8v4M12 16h.01',
+    viewed: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 100 6 3 3 0 000-6z',
+    signed: 'M20 6L9 17l-5-5',
+    expired: 'M18.36 5.64l-12.72 12.72M5.64 5.64l12.72 12.72',
+  }
+
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-8">
         <h1 className="font-serif text-3xl font-light text-ink">Documents</h1>
         <p className="mt-1 font-mono text-sm text-ink-soft">
-          Review and sign your employment documents
+          Review and sign your employment documents. These include policies, contracts, and other important information you need to acknowledge.
         </p>
       </div>
+
+      {/* Summary */}
+      {documents && documents.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-4">
+          {pendingCount > 0 && (
+            <div className="flex items-center gap-2 rounded-lg border border-sienna/20 bg-sienna/5 px-4 py-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sienna"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
+              <span className="font-mono text-xs text-sienna">{pendingCount} document{pendingCount > 1 ? 's' : ''} awaiting your signature</span>
+            </div>
+          )}
+          {signedCount > 0 && pendingCount === 0 && (
+            <div className="flex items-center gap-2 rounded-lg border border-sage/20 bg-sage/5 px-4 py-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sage"><path d="M20 6L9 17l-5-5" /></svg>
+              <span className="font-mono text-xs text-sage">All documents signed. You're all caught up.</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {documents && documents.length > 0 ? (
         <div className="space-y-3">
@@ -71,10 +110,16 @@ export default async function DocumentsPage() {
 
             if (!template) return null
 
+            const isPending = doc.status === 'pending' || doc.status === 'viewed'
+
             return (
               <div
                 key={doc.id}
-                className="flex items-center justify-between gap-4 rounded-xl border border-rule bg-white/60 p-5"
+                className={`flex items-center justify-between gap-4 rounded-xl border p-5 transition ${
+                  isPending
+                    ? 'border-sienna/20 bg-sienna/[0.03]'
+                    : 'border-rule bg-white/60'
+                }`}
               >
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -106,9 +151,10 @@ export default async function DocumentsPage() {
 
                 <div className="flex shrink-0 items-center gap-3">
                   <span
-                    className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] tracking-wide uppercase ${statusStyles[doc.status] ?? statusStyles.pending}`}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[10px] tracking-wide uppercase ${statusStyles[doc.status] ?? statusStyles.pending}`}
                   >
-                    {doc.status}
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d={statusIcons[doc.status] ?? statusIcons.pending} /></svg>
+                    {statusLabels[doc.status] ?? doc.status}
                   </span>
 
                   {doc.status !== 'signed' ? (
@@ -135,8 +181,9 @@ export default async function DocumentsPage() {
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-oatmeal bg-cream-soft/50 px-6 py-12 text-center">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-3 text-oatmeal-dk"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6" /></svg>
           <p className="font-mono text-sm text-ink-soft">
-            No documents pending. You&apos;re all caught up.
+            No documents assigned yet. When your manager sends you documents to review or sign, they'll appear here.
           </p>
         </div>
       )}

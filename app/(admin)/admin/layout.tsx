@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
-import { LogoutButton, MobileSidebarToggle, Sidebar } from '../../(dashboard)/components'
+import { LogoutButton, MobileSidebarToggle, Sidebar, AdminSidebarLinkClient } from '../../(dashboard)/components'
 
 export default async function AdminLayout({
   children,
@@ -83,19 +83,20 @@ function AdminSidebarContent() {
           <p className="mb-2 px-3 font-mono text-[10px] tracking-widest text-cream/40 uppercase">
             Admin
           </p>
-          <AdminSidebarLink href="/admin" label="Overview" />
-          <AdminSidebarLink href="/admin/staff" label="Staff" />
-          <AdminSidebarLink href="/admin/training" label="Training Mgmt" />
-          <AdminSidebarLink href="/admin/documents" label="Documents" />
+          <AdminSidebarLinkClient href="/admin" label="Overview" />
+          <AdminSidebarLinkClient href="/admin/staff" label="Staff" />
+          <AdminSidebarLinkClient href="/admin/training" label="Training Mgmt" />
+          <AdminSidebarLinkClient href="/admin/documents" label="Documents" />
+          <AdminSidebarLinkClient href="/admin/signing" label="Signing" />
         </div>
 
         <div>
           <p className="mb-2 px-3 font-mono text-[10px] tracking-widest text-cream/40 uppercase">
             Staff View
           </p>
-          <AdminSidebarLink href="/passport" label="Passport" />
-          <AdminSidebarLink href="/training" label="Training" />
-          <AdminSidebarLink href="/profile" label="Profile" />
+          <AdminSidebarLinkClient href="/passport" label="Passport" />
+          <AdminSidebarLinkClient href="/training" label="Training" />
+          <AdminSidebarLinkClient href="/profile" label="Profile" />
         </div>
       </nav>
 
@@ -105,22 +106,5 @@ function AdminSidebarContent() {
         </p>
       </div>
     </>
-  )
-}
-
-function AdminSidebarLink({
-  href,
-  label,
-}: {
-  href: string
-  label: string
-}) {
-  return (
-    <a
-      href={href}
-      className="flex items-center gap-3 rounded-lg px-3 py-2 font-mono text-sm text-cream/70 transition hover:bg-white/5 hover:text-cream"
-    >
-      {label}
-    </a>
   )
 }

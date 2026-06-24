@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { logout } from '@/app/actions/auth'
 import Image from 'next/image'
 
@@ -68,5 +69,80 @@ export function Sidebar({
         </aside>
       </div>
     </>
+  )
+}
+
+export function SidebarLinkClient({
+  href,
+  label,
+  iconPath,
+}: {
+  href: string
+  label: string
+  iconPath: string
+}) {
+  const pathname = usePathname()
+  const isActive =
+    href === '/passport'
+      ? pathname === '/passport'
+      : href === '/admin'
+        ? pathname === '/admin'
+        : pathname.startsWith(href)
+
+  return (
+    <a
+      href={href}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 font-mono text-sm transition ${
+        isActive
+          ? 'bg-white/10 text-cream font-medium'
+          : 'text-cream/70 hover:bg-white/5 hover:text-cream'
+      }`}
+    >
+      {iconPath && (
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="shrink-0"
+        >
+          <path d={iconPath} />
+        </svg>
+      )}
+      {label}
+    </a>
+  )
+}
+
+export function AdminSidebarLinkClient({
+  href,
+  label,
+}: {
+  href: string
+  label: string
+}) {
+  const pathname = usePathname()
+  const isActive =
+    href === '/admin'
+      ? pathname === '/admin'
+      : href === '/passport'
+        ? pathname === '/passport'
+        : pathname.startsWith(href)
+
+  return (
+    <a
+      href={href}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 font-mono text-sm transition ${
+        isActive
+          ? 'bg-white/10 text-cream font-medium'
+          : 'text-cream/70 hover:bg-white/5 hover:text-cream'
+      }`}
+    >
+      {label}
+    </a>
   )
 }
