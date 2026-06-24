@@ -114,60 +114,28 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
       </div>
 
       <nav className="flex-1 px-3 py-4 overflow-y-auto" role="navigation" aria-label="Main navigation">
-        <div className="mb-2">
-          <SidebarLinkClient href="/passport" label="Passport" iconPath={SIDEBAR_ICONS.home} />
+        <SidebarLinkClient href="/passport" label="Home" iconPath={SIDEBAR_ICONS.home} />
+
+        <div className="mt-4 mb-1 px-3">
+          <p className="font-mono text-[10px] tracking-widest text-cream/40 uppercase">Sections</p>
         </div>
-
-        <SidebarSection label="Learn" defaultOpen>
-          <SidebarLinkClient href="/foundation" label="Foundation" iconPath={SIDEBAR_ICONS.star} />
-          <SidebarLinkClient href="/learn" label="Learn Hub" iconPath={SIDEBAR_ICONS.layout} />
-          <SidebarLinkClient href="/training" label="Training" iconPath={SIDEBAR_ICONS.book} />
-          <SidebarLinkClient href="/handbook" label="Handbook" iconPath={SIDEBAR_ICONS['book-open']} />
-          <SidebarLinkClient href="/resources" label="Resources" iconPath={SIDEBAR_ICONS.folder} />
-        </SidebarSection>
-
-        <SidebarSection label="Operate">
-          <SidebarLinkClient href="/operate" label="Operate Hub" iconPath={SIDEBAR_ICONS.layout} />
-          <SidebarLinkClient href="/readiness" label="Daily Checklists" iconPath={SIDEBAR_ICONS['check-square']} />
-        </SidebarSection>
-
-        <SidebarSection label="Comply">
-          <SidebarLinkClient href="/comply" label="Comply Hub" iconPath={SIDEBAR_ICONS.layout} />
-          <SidebarLinkClient href="/certifications" label="Certifications" iconPath={SIDEBAR_ICONS.award} />
-        </SidebarSection>
-
-        <SidebarSection label="People">
-          <SidebarLinkClient href="/profile" label="Profile" iconPath={SIDEBAR_ICONS.user} />
-          <SidebarLinkClient href="/documents" label="Documents" iconPath={SIDEBAR_ICONS.file} />
-          <SidebarLinkClient href="/team" label="Team" iconPath={SIDEBAR_ICONS.users} />
-        </SidebarSection>
-
-        <SidebarSection label="Develop">
-          <SidebarLinkClient href="/develop" label="Develop Hub" iconPath={SIDEBAR_ICONS.layout} />
-          <SidebarLinkClient href="/reviews" label="Reviews" iconPath={SIDEBAR_ICONS.clipboard} />
-          <SidebarLinkClient href="/growth" label="Growth" iconPath={SIDEBAR_ICONS.trending} />
-          <SidebarLinkClient href="/career" label="Career" iconPath={SIDEBAR_ICONS.map} />
-          <SidebarLinkClient href="/wellbeing" label="Wellbeing" iconPath={SIDEBAR_ICONS.heart} />
-        </SidebarSection>
+        <SidebarLinkClient href="/learn" label="Learn" iconPath={SIDEBAR_ICONS.book} />
+        <SidebarLinkClient href="/operate" label="Operate" iconPath={SIDEBAR_ICONS['check-square']} />
+        <SidebarLinkClient href="/comply" label="Comply" iconPath={SIDEBAR_ICONS.award} />
+        <SidebarLinkClient href="/profile" label="People" iconPath={SIDEBAR_ICONS.user} />
+        <SidebarLinkClient href="/develop" label="Develop" iconPath={SIDEBAR_ICONS.trending} />
 
         {isAdmin && (
-          <SidebarSection label="Admin">
-            <SidebarLinkClient href="/admin" label="Overview" iconPath={SIDEBAR_ICONS.grid} />
-            <SidebarLinkClient href="/admin/analytics" label="Analytics" iconPath={SIDEBAR_ICONS['bar-chart']} />
+          <>
+            <div className="mt-4 mb-1 px-3">
+              <p className="font-mono text-[10px] tracking-widest text-cream/40 uppercase">Admin</p>
+            </div>
+            <SidebarLinkClient href="/admin" label="Dashboard" iconPath={SIDEBAR_ICONS.grid} />
             <SidebarLinkClient href="/admin/staff" label="Staff" iconPath={SIDEBAR_ICONS.users} />
-            <SidebarLinkClient href="/admin/training" label="Training Mgmt" iconPath={SIDEBAR_ICONS.layers} />
-            <SidebarLinkClient href="/admin/reviews" label="Reviews" iconPath={SIDEBAR_ICONS.clipboard} />
-            <SidebarLinkClient href="/admin/certifications" label="Certifications" iconPath={SIDEBAR_ICONS.star} />
-            <SidebarLinkClient href="/admin/wellbeing" label="Wellbeing" iconPath={SIDEBAR_ICONS.heart} />
-            <SidebarLinkClient href="/admin/recognition" label="Recognition" iconPath={SIDEBAR_ICONS.award} />
-            <SidebarLinkClient href="/admin/skills" label="Skills" iconPath={SIDEBAR_ICONS['bar-chart']} />
-            <SidebarLinkClient href="/admin/documents" label="Documents" iconPath={SIDEBAR_ICONS.files} />
-            <SidebarLinkClient href="/admin/signing" label="Signing" iconPath={SIDEBAR_ICONS.pen} />
-            <SidebarLinkClient href="/admin/handbook" label="Handbook" iconPath={SIDEBAR_ICONS['book-open']} />
-            <SidebarLinkClient href="/admin/resources" label="Resources" iconPath={SIDEBAR_ICONS.folder} />
-            <SidebarLinkClient href="/admin/readiness" label="Readiness" iconPath={SIDEBAR_ICONS['check-square']} />
-            <SidebarLinkClient href="/admin/talent" label="Talent" iconPath={SIDEBAR_ICONS.trending} />
-          </SidebarSection>
+            <SidebarLinkClient href="/admin/training" label="Training" iconPath={SIDEBAR_ICONS.layers} />
+            <SidebarLinkClient href="/admin/signing" label="Documents" iconPath={SIDEBAR_ICONS.pen} />
+            <SidebarLinkClient href="/admin/analytics" label="Analytics" iconPath={SIDEBAR_ICONS['bar-chart']} />
+          </>
         )}
       </nav>
 
