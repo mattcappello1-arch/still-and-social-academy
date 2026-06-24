@@ -99,12 +99,41 @@ export default async function AdminDashboard() {
     .order('completed_at', { ascending: false })
     .limit(5)
 
+  // Pending signing assignments
+  const { count: pendingSignOffs } = await supabase
+    .from('academy_signing_assignments')
+    .select('*', { count: 'exact', head: true })
+    .in('status', ['sent', 'viewed'])
+
+  // Overdue modules (in_progress for more than 30 days)
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const { count: overdueModules } = await supabase
+    .from('academy_staff_module_progress')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'in_progress')
+    .lt('updated_at', thirtyDaysAgo.toISOString())
+
+  // Reviews due
+  const { count: reviewsDue } = await supabase
+    .from('academy_reviews')
+    .select('*', { count: 'exact', head: true })
+    .neq('status', 'completed')
+
+  // Staff readiness summary
+  const { data: allReadiness } = await supabase
+    .from('academy_shift_readiness')
+    .select('manager_signed_off')
+
+  const readyStaffCount = (allReadiness ?? []).filter((r: any) => r.manager_signed_off).length
+  const totalReadinessStaff = allReadiness?.length ?? 0
+
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-serif text-3xl font-light text-ink">Admin Overview</h1>
-          <p className="mt-1 font-mono text-sm text-ink-soft">Staff and training management at a glance</p>
+          <p className="mt-1 font-mono text-sm text-ink-soft">Staff operating system at a glance</p>
         </div>
       </div>
 
@@ -128,47 +157,96 @@ export default async function AdminDashboard() {
         </a>
       </div>
 
-      {/* Staff Overview */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <AdminStatCard label="Total Staff" value={String(totalStaff ?? 0)} icon="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 3a4 4 0 100 8 4 4 0 000-8 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75" />
-        <AdminStatCard label="Active" value={String(activeStaff ?? 0)} accent="sage" icon="M20 6L9 17l-5-5" />
-        <AdminStatCard label="Pending" value={String(pendingStaff ?? 0)} accent="oatmeal-dk" icon="M12 8v4M12 16h.01" />
-        <AdminStatCard label="Inactive" value={String(inactiveStaff ?? 0)} accent="ink-soft" icon="M18.36 5.64l-12.72 12.72M5.64 5.64l12.72 12.72" />
-      </div>
-
-      {/* Training Progress */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2">
+      {/* OS Section Stats */}
+      <div className="mb-8 space-y-6">
+        {/* LEARN */}
         <div className="rounded-xl border border-rule bg-white/60 p-5">
-          <p className="mb-1 font-mono text-[10px] tracking-widest text-ink-soft uppercase">Training Completion</p>
-          <p className="font-serif text-3xl font-light text-ink">{completionRate}%</p>
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-oatmeal/30">
-            <div className="h-full rounded-full bg-sienna transition-all" style={{ width: `${completionRate}%` }} />
+          <p className="mb-3 font-mono text-[10px] tracking-widest text-ink-soft uppercase">Learn</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="font-serif text-3xl font-light text-ink">{completionRate}%</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">overall completion rate</p>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-oatmeal/30">
+                <div className="h-full rounded-full bg-sienna transition-all" style={{ width: `${completionRate}%` }} />
+              </div>
+            </div>
+            <div>
+              <p className="font-serif text-3xl font-light text-ink">{overdueModules ?? 0}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">overdue modules (&gt;30 days in progress)</p>
+            </div>
           </div>
-          <p className="mt-2 font-mono text-xs text-ink-soft">
-            {completedProgress} of {totalProgress} modules completed across all staff
-          </p>
         </div>
 
+        {/* OPERATE */}
         <div className="rounded-xl border border-rule bg-white/60 p-5">
-          <p className="mb-1 font-mono text-[10px] tracking-widest text-ink-soft uppercase">Quick Stats</p>
-          <div className="space-y-2 mt-3">
-            <div className="flex justify-between items-center">
-              <span className="font-mono text-xs text-ink-soft">Expiring Certifications</span>
-              <span className={`font-mono text-sm font-medium ${(expiringCerts?.length ?? 0) > 0 ? 'text-sienna' : 'text-sage-deep'}`}>
+          <p className="mb-3 font-mono text-[10px] tracking-widest text-ink-soft uppercase">Operate</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="font-serif text-3xl font-light text-ink">{readyStaffCount}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">staff shift-ready</p>
+            </div>
+            <div>
+              <p className="font-serif text-3xl font-light text-ink-soft">{totalReadinessStaff - readyStaffCount}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">not yet ready</p>
+            </div>
+          </div>
+        </div>
+
+        {/* COMPLY */}
+        <div className="rounded-xl border border-rule bg-white/60 p-5">
+          <p className="mb-3 font-mono text-[10px] tracking-widest text-ink-soft uppercase">Comply</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className={`font-serif text-3xl font-light ${(expiringCerts?.length ?? 0) > 0 ? 'text-sienna' : 'text-ink'}`}>
                 {expiringCerts?.length ?? 0}
-              </span>
+              </p>
+              <p className="font-mono text-xs text-ink-soft mt-1">expiring certifications (30 days)</p>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="font-mono text-xs text-ink-soft">Probation Reviews Due</span>
-              <span className={`font-mono text-sm font-medium ${probationAlerts.length > 0 ? 'text-sienna' : 'text-sage-deep'}`}>
-                {probationAlerts.length}
-              </span>
+            <div>
+              <p className="font-serif text-3xl font-light text-ink">{pendingSignOffs ?? 0}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">pending sign-offs</p>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="font-mono text-xs text-ink-soft">Wellbeing Alerts</span>
-              <span className={`font-mono text-sm font-medium ${(wellbeingAlerts?.length ?? 0) > 0 ? 'text-rosewood' : 'text-sage-deep'}`}>
-                {wellbeingAlerts?.length ?? 0}
-              </span>
+          </div>
+        </div>
+
+        {/* PEOPLE */}
+        <div className="rounded-xl border border-rule bg-white/60 p-5">
+          <p className="mb-3 font-mono text-[10px] tracking-widest text-ink-soft uppercase">People</p>
+          <div className="grid gap-4 sm:grid-cols-4">
+            <div>
+              <p className="font-serif text-3xl font-light text-ink">{totalStaff ?? 0}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">total staff</p>
+            </div>
+            <div>
+              <p className="font-serif text-3xl font-light text-sage">{activeStaff ?? 0}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">active</p>
+            </div>
+            <div>
+              <p className="font-serif text-3xl font-light text-oatmeal-dk">{pendingStaff ?? 0}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">pending</p>
+            </div>
+            <div>
+              <p className="font-serif text-3xl font-light text-ink-soft">{inactiveStaff ?? 0}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">inactive</p>
+            </div>
+          </div>
+        </div>
+
+        {/* DEVELOP */}
+        <div className="rounded-xl border border-rule bg-white/60 p-5">
+          <p className="mb-3 font-mono text-[10px] tracking-widest text-ink-soft uppercase">Develop</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <p className={`font-serif text-3xl font-light ${(reviewsDue ?? 0) > 0 ? 'text-sienna' : 'text-ink'}`}>{reviewsDue ?? 0}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">reviews due</p>
+            </div>
+            <div>
+              <p className={`font-serif text-3xl font-light ${probationAlerts.length > 0 ? 'text-sienna' : 'text-ink'}`}>{probationAlerts.length}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">probation alerts</p>
+            </div>
+            <div>
+              <p className={`font-serif text-3xl font-light ${(wellbeingAlerts?.length ?? 0) > 0 ? 'text-rosewood' : 'text-ink'}`}>{wellbeingAlerts?.length ?? 0}</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">wellbeing alerts</p>
             </div>
           </div>
         </div>

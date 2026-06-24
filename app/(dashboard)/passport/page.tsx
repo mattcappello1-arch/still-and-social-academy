@@ -106,12 +106,6 @@ export default async function PassportPage() {
   })
 
   // Onboarding checklist (for new staff)
-  const { data: personalDetails } = await supabase
-    .from('academy_staff_personal_details')
-    .select('staff_id')
-    .eq('staff_id', user.id)
-    .single()
-
   const { data: certs } = await supabase
     .from('academy_certifications')
     .select('id')
@@ -124,7 +118,61 @@ export default async function PassportPage() {
     .eq('staff_id', user.id)
     .limit(1)
 
-  const hasProfile = !!personalDetails
+  // Readiness data for Operate card
+  const { data: readiness } = await supabase
+    .from('academy_shift_readiness')
+    .select('checklist_items, manager_signed_off')
+    .eq('staff_id', user.id)
+    .single()
+
+  const readinessItems = (readiness?.checklist_items ?? []) as Array<{ name: string; completed: boolean }>
+  const readinessAllDone = readinessItems.length > 0
+    && readinessItems.every(i => i.completed)
+    && (readiness?.manager_signed_off ?? false)
+
+  // Certifications count for Comply card
+  const { data: allCertsForCard } = await supabase
+    .from('academy_certifications')
+    .select('id, expiry_date')
+    .eq('staff_id', user.id)
+
+  const nowDate = new Date()
+  let certValidCount = 0
+  let certExpiredCount = 0
+  for (const c of allCertsForCard ?? []) {
+    if (!c.expiry_date || new Date(c.expiry_date) > nowDate) certValidCount++
+    else certExpiredCount++
+  }
+
+  // Profile completeness for People card
+  const { data: personalDetailsForCard } = await supabase
+    .from('academy_staff_personal_details')
+    .select('*')
+    .eq('staff_id', user.id)
+    .single()
+
+  const profileFields = personalDetailsForCard ? Object.values(personalDetailsForCard).filter(v => v !== null && v !== '').length : 0
+  const profileTotal = personalDetailsForCard ? Object.keys(personalDetailsForCard).length : 1
+  const profilePct = Math.round((profileFields / Math.max(profileTotal, 1)) * 100)
+
+  // Next review for Develop card
+  const { data: nextReviewData } = await supabase
+    .from('academy_reviews')
+    .select('scheduled_date')
+    .eq('staff_id', user.id)
+    .neq('status', 'completed')
+    .not('scheduled_date', 'is', null)
+    .order('scheduled_date')
+    .limit(1)
+
+  const nextReviewDate = nextReviewData?.[0]?.scheduled_date
+    ? new Date(nextReviewData[0].scheduled_date)
+    : null
+  const daysUntilReview = nextReviewDate
+    ? Math.ceil((nextReviewDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null
+
+  const hasProfile = !!personalDetailsForCard
   const hasStartedWay = pathProgress.some((p: any) => p.slug === 'the-still-and-social-way' && p.completed > 0)
   const hasCerts = (certs?.length ?? 0) > 0
   const hasCheckedIn = (wellbeingCheckin?.length ?? 0) > 0
@@ -195,6 +243,53 @@ export default async function PassportPage() {
           </span>
         </div>
       )}
+
+      {/* OS Section Cards */}
+      <div className="mb-8 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <Link href="/learn" className="rounded-xl border border-rule bg-white/60 p-4 transition hover:shadow-sm hover:border-sienna/30 group text-center">
+          <p className="font-mono text-[10px] tracking-widest text-ink-soft uppercase mb-2 group-hover:text-sienna transition">Learn</p>
+          <p className="font-serif text-2xl font-light text-ink">{overallPct}%</p>
+          <p className="font-mono text-[10px] text-ink-soft mt-1">trained</p>
+        </Link>
+        <Link href="/operate" className="rounded-xl border border-rule bg-white/60 p-4 transition hover:shadow-sm hover:border-sienna/30 group text-center">
+          <p className="font-mono text-[10px] tracking-widest text-ink-soft uppercase mb-2 group-hover:text-sienna transition">Operate</p>
+          {readinessAllDone ? (
+            <>
+              <p className="font-serif text-2xl font-light text-sage">Ready</p>
+              <p className="font-mono text-[10px] text-sage mt-1">&#10003;</p>
+            </>
+          ) : (
+            <>
+              <p className="font-serif text-2xl font-light text-ink">{readinessItems.length > 0 ? `${readinessItems.filter(i => i.completed).length}/${readinessItems.length}` : '--'}</p>
+              <p className="font-mono text-[10px] text-ink-soft mt-1">items</p>
+            </>
+          )}
+        </Link>
+        <Link href="/comply" className="rounded-xl border border-rule bg-white/60 p-4 transition hover:shadow-sm hover:border-sienna/30 group text-center">
+          <p className="font-mono text-[10px] tracking-widest text-ink-soft uppercase mb-2 group-hover:text-sienna transition">Comply</p>
+          <p className="font-serif text-2xl font-light text-ink">{certValidCount} valid</p>
+          <p className={`font-mono text-[10px] mt-1 ${certExpiredCount > 0 ? 'text-rosewood' : 'text-ink-soft'}`}>{certExpiredCount} exp.</p>
+        </Link>
+        <Link href="/profile" className="rounded-xl border border-rule bg-white/60 p-4 transition hover:shadow-sm hover:border-sienna/30 group text-center">
+          <p className="font-mono text-[10px] tracking-widest text-ink-soft uppercase mb-2 group-hover:text-sienna transition">People</p>
+          <p className="font-serif text-2xl font-light text-ink">Profile</p>
+          <p className="font-mono text-[10px] text-ink-soft mt-1">{profilePct}%</p>
+        </Link>
+        <Link href="/develop" className="rounded-xl border border-rule bg-white/60 p-4 transition hover:shadow-sm hover:border-sienna/30 group text-center">
+          <p className="font-mono text-[10px] tracking-widest text-ink-soft uppercase mb-2 group-hover:text-sienna transition">Develop</p>
+          {daysUntilReview !== null ? (
+            <>
+              <p className="font-serif text-2xl font-light text-ink">Review</p>
+              <p className="font-mono text-[10px] text-ink-soft mt-1">in {daysUntilReview}d</p>
+            </>
+          ) : (
+            <>
+              <p className="font-serif text-2xl font-light text-ink">--</p>
+              <p className="font-mono text-[10px] text-ink-soft mt-1">no review</p>
+            </>
+          )}
+        </Link>
+      </div>
 
       {/* Onboarding checklist for new staff */}
       {showOnboarding && onboardingDone < onboardingTotal && (
