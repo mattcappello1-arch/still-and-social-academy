@@ -10,9 +10,16 @@ const cormorant = Cormorant_Garamond({
 })
 
 export const metadata: Metadata = {
-  title: 'Still & Social Academy',
+  title: 'Still & Social OS',
   description:
-    'Staff training portal for Still & Social — onboarding, training paths, documents, and team management.',
+    'Staff operating system for Still & Social — training, operations, compliance, and team development.',
+  manifest: '/manifest.json',
+  themeColor: '#241F21',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'S&S OS',
+  },
   icons: {
     icon: [
       { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },

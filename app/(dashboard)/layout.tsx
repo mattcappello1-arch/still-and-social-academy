@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
-import { LogoutButton, MobileSidebarToggle, Sidebar, SidebarLinkClient } from './components'
+import { LogoutButton, MobileSidebarToggle, Sidebar, SidebarLinkClient, SidebarSection } from './components'
 
 export default async function DashboardLayout({
   children,
@@ -30,6 +30,13 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-sienna focus:text-cream focus:px-4 focus:py-2 focus:rounded-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-rule bg-charcoal lg:flex">
         <SidebarContent isAdmin={isAdmin} />
@@ -46,13 +53,14 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-3">
             <MobileSidebarToggle />
             <span className="font-mono text-xs tracking-wider text-ink-soft uppercase">
-              Academy
+              OS
             </span>
           </div>
 
           <div className="flex items-center gap-4">
-            <form action="/search" method="get" className="hidden sm:block">
-              <input name="q" type="text" placeholder="Search..."
+            <form action="/search" method="get" className="hidden sm:block" role="search">
+              <label htmlFor="header-search" className="sr-only">Search</label>
+              <input id="header-search" name="q" type="text" placeholder="Search..."
                 className="w-40 rounded-lg border border-rule bg-cream/50 px-3 py-1.5 text-xs text-ink placeholder:text-oatmeal-dk outline-none transition focus:w-56 focus:border-sienna/30" />
             </form>
             <span className="font-mono text-sm text-ink">{displayName}</span>
@@ -60,7 +68,7 @@ export default async function DashboardLayout({
           </div>
         </header>
 
-        <main className="flex-1 p-4 lg:p-8">{children}</main>
+        <main id="main-content" className="flex-1 p-4 lg:p-8">{children}</main>
       </div>
     </div>
   )
@@ -86,6 +94,7 @@ const SIDEBAR_ICONS: Record<string, string> = {
   folder: 'M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z',
   map: 'M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z',
   'check-square': 'M9 11l3 3L22 4 M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11',
+  'layout': 'M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z M4 9h16 M9 9v11',
 }
 
 function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
@@ -100,35 +109,48 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
           className="invert opacity-80"
         />
         <span className="font-serif text-lg font-light tracking-wide text-cream">
-          Academy
+          OS
         </span>
       </div>
 
-      <nav className="flex-1 px-3 py-4">
-        <div className="mb-6">
-          <p className="mb-2 px-3 font-mono text-[10px] tracking-widest text-cream/40 uppercase">
-            Your Space
-          </p>
+      <nav className="flex-1 px-3 py-4 overflow-y-auto" role="navigation" aria-label="Main navigation">
+        <div className="mb-2">
           <SidebarLinkClient href="/passport" label="Passport" iconPath={SIDEBAR_ICONS.home} />
-          <SidebarLinkClient href="/training" label="Training" iconPath={SIDEBAR_ICONS.book} />
-          <SidebarLinkClient href="/growth" label="Growth" iconPath={SIDEBAR_ICONS.trending} />
-          <SidebarLinkClient href="/reviews" label="Reviews" iconPath={SIDEBAR_ICONS.clipboard} />
-          <SidebarLinkClient href="/certifications" label="Certifications" iconPath={SIDEBAR_ICONS.award} />
-          <SidebarLinkClient href="/wellbeing" label="Wellbeing" iconPath={SIDEBAR_ICONS.heart} />
-          <SidebarLinkClient href="/handbook" label="Handbook" iconPath={SIDEBAR_ICONS['book-open']} />
-          <SidebarLinkClient href="/resources" label="Resources" iconPath={SIDEBAR_ICONS.folder} />
-          <SidebarLinkClient href="/career" label="Career" iconPath={SIDEBAR_ICONS.map} />
-          <SidebarLinkClient href="/readiness" label="Readiness" iconPath={SIDEBAR_ICONS['check-square']} />
-          <SidebarLinkClient href="/documents" label="Documents" iconPath={SIDEBAR_ICONS.file} />
-          <SidebarLinkClient href="/profile" label="Profile" iconPath={SIDEBAR_ICONS.user} />
-          <SidebarLinkClient href="/team" label="Team" iconPath={SIDEBAR_ICONS.users} />
         </div>
 
+        <SidebarSection label="Learn" defaultOpen>
+          <SidebarLinkClient href="/learn" label="Learn Hub" iconPath={SIDEBAR_ICONS.layout} />
+          <SidebarLinkClient href="/training" label="Training" iconPath={SIDEBAR_ICONS.book} />
+          <SidebarLinkClient href="/handbook" label="Handbook" iconPath={SIDEBAR_ICONS['book-open']} />
+          <SidebarLinkClient href="/resources" label="Resources" iconPath={SIDEBAR_ICONS.folder} />
+        </SidebarSection>
+
+        <SidebarSection label="Operate">
+          <SidebarLinkClient href="/operate" label="Operate Hub" iconPath={SIDEBAR_ICONS.layout} />
+          <SidebarLinkClient href="/readiness" label="Daily Checklists" iconPath={SIDEBAR_ICONS['check-square']} />
+        </SidebarSection>
+
+        <SidebarSection label="Comply">
+          <SidebarLinkClient href="/comply" label="Comply Hub" iconPath={SIDEBAR_ICONS.layout} />
+          <SidebarLinkClient href="/certifications" label="Certifications" iconPath={SIDEBAR_ICONS.award} />
+        </SidebarSection>
+
+        <SidebarSection label="People">
+          <SidebarLinkClient href="/profile" label="Profile" iconPath={SIDEBAR_ICONS.user} />
+          <SidebarLinkClient href="/documents" label="Documents" iconPath={SIDEBAR_ICONS.file} />
+          <SidebarLinkClient href="/team" label="Team" iconPath={SIDEBAR_ICONS.users} />
+        </SidebarSection>
+
+        <SidebarSection label="Develop">
+          <SidebarLinkClient href="/develop" label="Develop Hub" iconPath={SIDEBAR_ICONS.layout} />
+          <SidebarLinkClient href="/reviews" label="Reviews" iconPath={SIDEBAR_ICONS.clipboard} />
+          <SidebarLinkClient href="/growth" label="Growth" iconPath={SIDEBAR_ICONS.trending} />
+          <SidebarLinkClient href="/career" label="Career" iconPath={SIDEBAR_ICONS.map} />
+          <SidebarLinkClient href="/wellbeing" label="Wellbeing" iconPath={SIDEBAR_ICONS.heart} />
+        </SidebarSection>
+
         {isAdmin && (
-          <div>
-            <p className="mb-2 px-3 font-mono text-[10px] tracking-widest text-cream/40 uppercase">
-              Admin
-            </p>
+          <SidebarSection label="Admin">
             <SidebarLinkClient href="/admin" label="Overview" iconPath={SIDEBAR_ICONS.grid} />
             <SidebarLinkClient href="/admin/analytics" label="Analytics" iconPath={SIDEBAR_ICONS['bar-chart']} />
             <SidebarLinkClient href="/admin/staff" label="Staff" iconPath={SIDEBAR_ICONS.users} />
@@ -144,7 +166,7 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
             <SidebarLinkClient href="/admin/resources" label="Resources" iconPath={SIDEBAR_ICONS.folder} />
             <SidebarLinkClient href="/admin/readiness" label="Readiness" iconPath={SIDEBAR_ICONS['check-square']} />
             <SidebarLinkClient href="/admin/talent" label="Talent" iconPath={SIDEBAR_ICONS.trending} />
-          </div>
+          </SidebarSection>
         )}
       </nav>
 

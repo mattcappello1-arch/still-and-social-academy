@@ -1,0 +1,157 @@
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
+
+export default async function LearnHubPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: staff } = await supabase
+    .from('academy_staff')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  // Get assigned training paths
+  const { data: rolePaths } = staff
+    ? await supabase
+        .from('academy_role_training_paths')
+        .select('path_id, is_required, sort_order, academy_training_paths(id, title, slug, department)')
+        .eq('role', staff.role)
+        .order('sort_order')
+    : { data: null }
+
+  const pathIds = (rolePaths ?? []).map((rp: any) => rp.path_id)
+  const { data: allModules } = pathIds.length
+    ? await supabase.from('academy_training_modules').select('id, path_id, title, slug').in('path_id', pathIds)
+    : { data: [] }
+
+  const { data: progress } = await supabase
+    .from('academy_staff_module_progress')
+    .select('module_id, status, completed_at')
+    .eq('staff_id', user.id)
+
+  const progressMap = new Map((progress ?? []).map((p: any) => [p.module_id, p]))
+
+  const pathProgress = (rolePaths ?? []).map((rp: any) => {
+    const path = rp.academy_training_paths
+    const pathModules = (allModules ?? []).filter((m: any) => m.path_id === rp.path_id)
+    const completed = pathModules.filter((m: any) => progressMap.get(m.id)?.status === 'completed').length
+    const total = pathModules.length
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0
+    return { ...path, completed, total, pct, is_required: rp.is_required }
+  })
+
+  const overallTotal = pathProgress.reduce((s, p) => s + p.total, 0)
+  const overallCompleted = pathProgress.reduce((s, p) => s + p.completed, 0)
+  const overallPct = overallTotal > 0 ? Math.round((overallCompleted / overallTotal) * 100) : 0
+
+  // Find next incomplete module
+  let nextModule: { title: string; slug: string; pathSlug: string } | null = null
+  for (const pp of pathProgress) {
+    if (pp.pct < 100) {
+      const pathModules = (allModules ?? []).filter((m: any) => m.path_id === pp.id)
+      const incomplete = pathModules.find((m: any) => progressMap.get(m.id)?.status !== 'completed')
+      if (incomplete) {
+        nextModule = { title: incomplete.title, slug: incomplete.slug, pathSlug: pp.slug }
+        break
+      }
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl">
+      <div className="mb-8">
+        <h1 className="font-serif text-3xl font-light text-ink">Learn</h1>
+        <p className="mt-1 font-mono text-sm text-ink-soft">Your training progress and learning resources</p>
+      </div>
+
+      {/* Overall progress */}
+      <div className="mb-8 rounded-xl border border-rule bg-white/60 p-6">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-mono text-[10px] tracking-widest text-ink-soft uppercase">Overall Training Progress</p>
+          <span className="font-serif text-3xl font-light text-ink">{overallPct}%</span>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-oatmeal/30">
+          <div className="h-full rounded-full bg-sienna transition-all" style={{ width: `${overallPct}%` }} />
+        </div>
+        <p className="mt-2 font-mono text-xs text-ink-soft">{overallCompleted} of {overallTotal} modules completed</p>
+      </div>
+
+      {/* Continue where you left off */}
+      {nextModule && (
+        <div className="mb-8 rounded-xl border-2 border-sienna/30 bg-sienna/5 p-6">
+          <p className="font-mono text-[10px] tracking-widest text-sienna uppercase mb-2">Continue Where You Left Off</p>
+          <Link href={`/training/${nextModule.pathSlug}/${nextModule.slug}`}
+            className="flex items-center justify-between group">
+            <span className="font-serif text-xl font-light text-ink group-hover:text-sienna transition">
+              {nextModule.title}
+            </span>
+            <span className="flex items-center gap-2 rounded-lg bg-sienna px-4 py-2 font-mono text-xs font-medium tracking-wide text-cream transition group-hover:bg-sienna/90">
+              Continue
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition group-hover:translate-x-0.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+            </span>
+          </Link>
+        </div>
+      )}
+
+      {/* Training paths */}
+      <section className="mb-8">
+        <h2 className="mb-4 font-serif text-xl font-light text-ink">Training Paths</h2>
+        <div className="space-y-3">
+          {pathProgress.map((p: any) => (
+            <Link key={p.id} href={`/training/${p.slug}`}
+              className="flex items-center justify-between rounded-xl border border-rule bg-white/60 p-4 hover:shadow-sm transition group">
+              <div className="flex-1">
+                <p className="font-mono text-sm font-medium text-ink group-hover:text-sienna transition">{p.title}</p>
+                <p className="font-mono text-xs text-ink-soft mt-0.5">{p.completed} of {p.total} modules · {p.is_required ? 'Required' : 'Optional'}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-24 h-1.5 rounded-full bg-oatmeal/30">
+                  <div className="h-full rounded-full bg-sienna transition-all" style={{ width: `${p.pct}%` }} />
+                </div>
+                <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] tracking-wider ${
+                  p.pct === 100 ? 'bg-sage/20 text-sage-deep' :
+                  p.pct > 0 ? 'bg-sienna/10 text-sienna' :
+                  'bg-oatmeal/30 text-ink-soft'
+                }`}>
+                  {p.pct === 100 ? 'Complete' : p.pct > 0 ? `${p.pct}%` : 'Not started'}
+                </span>
+              </div>
+            </Link>
+          ))}
+          {pathProgress.length === 0 && (
+            <div className="rounded-xl border border-dashed border-oatmeal bg-cream-soft/50 px-6 py-8 text-center">
+              <p className="font-mono text-sm text-ink-soft">No training paths assigned yet.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Quick links */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link href="/handbook"
+          className="rounded-xl border border-rule bg-white/60 p-5 transition hover:shadow-sm hover:border-sienna/30 group">
+          <div className="flex items-center gap-3 mb-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sienna">
+              <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
+            </svg>
+            <h3 className="font-mono text-sm font-medium text-ink group-hover:text-sienna transition">Browse Handbook</h3>
+          </div>
+          <p className="font-mono text-xs text-ink-soft">Policies, procedures, and guides</p>
+        </Link>
+        <Link href="/resources"
+          className="rounded-xl border border-rule bg-white/60 p-5 transition hover:shadow-sm hover:border-sienna/30 group">
+          <div className="flex items-center gap-3 mb-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sienna">
+              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+            </svg>
+            <h3 className="font-mono text-sm font-medium text-ink group-hover:text-sienna transition">View Resources</h3>
+          </div>
+          <p className="font-mono text-xs text-ink-soft">Forms, templates, and reference materials</p>
+        </Link>
+      </div>
+    </div>
+  )
+}

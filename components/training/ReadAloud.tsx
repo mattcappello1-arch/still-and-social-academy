@@ -525,6 +525,8 @@ export function ReadAloud({
 
       {/* Player bar */}
       <div
+        role="region"
+        aria-label="Read aloud player"
         className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ${
           minimized ? 'translate-y-[calc(100%-44px)]' : 'translate-y-0'
         }`}
@@ -568,7 +570,7 @@ export function ReadAloud({
                   <path d="M11 5L6 9H2v6h4l5 4V5z" />
                   <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" />
                 </svg>
-                <span className="font-mono text-xs text-cream/70">
+                <span className="font-mono text-xs text-cream/70" aria-live="polite">
                   {playingIntro
                     ? 'Playing intro...'
                     : `Section ${currentSection + 1} of ${sections.length}`}
@@ -609,6 +611,7 @@ export function ReadAloud({
                   onClick={handlePrev}
                   disabled={currentSection === 0 || playingIntro}
                   className="flex h-8 w-8 items-center justify-center rounded-lg text-cream/70 transition hover:bg-cream/10 hover:text-cream disabled:opacity-30 disabled:cursor-not-allowed"
+                  aria-label="Previous section"
                   title="Previous section"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -624,6 +627,7 @@ export function ReadAloud({
                     onClick={handlePause}
                     disabled={playingIntro}
                     className="flex h-10 w-10 items-center justify-center rounded-xl bg-cream text-charcoal transition hover:bg-cream-soft disabled:opacity-50"
+                    aria-label="Pause"
                     title="Pause"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -637,6 +641,7 @@ export function ReadAloud({
                     onClick={handlePlay}
                     disabled={playingIntro}
                     className="flex h-10 w-10 items-center justify-center rounded-xl bg-cream text-charcoal transition hover:bg-cream-soft disabled:opacity-50"
+                    aria-label={isPaused ? 'Resume' : 'Play'}
                     title={isPaused ? 'Resume' : 'Play'}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -651,6 +656,7 @@ export function ReadAloud({
                   onClick={handleStop}
                   disabled={!isPlaying && !isPaused}
                   className="flex h-8 w-8 items-center justify-center rounded-lg text-cream/70 transition hover:bg-cream/10 hover:text-cream disabled:opacity-30 disabled:cursor-not-allowed"
+                  aria-label="Stop"
                   title="Stop"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
@@ -664,6 +670,7 @@ export function ReadAloud({
                   onClick={handleNext}
                   disabled={currentSection >= sections.length - 1 || playingIntro}
                   className="flex h-8 w-8 items-center justify-center rounded-lg text-cream/70 transition hover:bg-cream/10 hover:text-cream disabled:opacity-30 disabled:cursor-not-allowed"
+                  aria-label="Next section"
                   title="Next section"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -678,6 +685,7 @@ export function ReadAloud({
                     type="button"
                     onClick={handleReplay}
                     className="ml-2 flex items-center gap-1.5 rounded-lg bg-cream/10 px-3 py-1.5 font-mono text-[10px] text-cream/70 transition hover:bg-cream/20 hover:text-cream"
+                    aria-label="Replay from start"
                     title="Replay from start"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

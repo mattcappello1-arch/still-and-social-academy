@@ -20,7 +20,7 @@ export default async function LoginPage({
   return (
     <div>
       <h2 className="mb-1 font-serif text-2xl font-light text-ink">
-        Welcome to Still & Social Academy
+        Welcome to Still & Social OS
       </h2>
       <p className="mb-6 font-mono text-sm text-ink-soft">
         Sign in to access your training and documents

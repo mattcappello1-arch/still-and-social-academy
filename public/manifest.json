@@ -1,0 +1,14 @@
+{
+  "name": "Still & Social OS",
+  "short_name": "S&S OS",
+  "description": "Staff training and development platform",
+  "start_url": "/passport",
+  "display": "standalone",
+  "background_color": "#F5F1DD",
+  "theme_color": "#241F21",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "380x380", "type": "image/png" },
+    { "src": "/favicon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

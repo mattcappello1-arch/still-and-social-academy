@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
-import { LogoutButton, MobileSidebarToggle, Sidebar, AdminSidebarLinkClient } from '../../(dashboard)/components'
+import { LogoutButton, MobileSidebarToggle, Sidebar, AdminSidebarLinkClient, SidebarSection } from '../../(dashboard)/components'
 
 export default async function AdminLayout({
   children,
@@ -78,36 +78,48 @@ function AdminSidebarContent() {
         </span>
       </div>
 
-      <nav className="flex-1 px-3 py-4">
-        <div className="mb-6">
-          <p className="mb-2 px-3 font-mono text-[10px] tracking-widest text-cream/40 uppercase">
-            Admin
-          </p>
+      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+        <div className="mb-2">
           <AdminSidebarLinkClient href="/admin" label="Overview" />
-          <AdminSidebarLinkClient href="/admin/analytics" label="Analytics" />
-          <AdminSidebarLinkClient href="/admin/staff" label="Staff" />
-          <AdminSidebarLinkClient href="/admin/training" label="Training Mgmt" />
-          <AdminSidebarLinkClient href="/admin/reviews" label="Reviews" />
-          <AdminSidebarLinkClient href="/admin/certifications" label="Certifications" />
-          <AdminSidebarLinkClient href="/admin/wellbeing" label="Wellbeing" />
-          <AdminSidebarLinkClient href="/admin/recognition" label="Recognition" />
-          <AdminSidebarLinkClient href="/admin/skills" label="Skills" />
-          <AdminSidebarLinkClient href="/admin/documents" label="Documents" />
-          <AdminSidebarLinkClient href="/admin/signing" label="Signing" />
-          <AdminSidebarLinkClient href="/admin/handbook" label="Handbook" />
-          <AdminSidebarLinkClient href="/admin/resources" label="Resources" />
-          <AdminSidebarLinkClient href="/admin/readiness" label="Readiness" />
-          <AdminSidebarLinkClient href="/admin/talent" label="Talent" />
         </div>
 
-        <div>
-          <p className="mb-2 px-3 font-mono text-[10px] tracking-widest text-cream/40 uppercase">
-            Staff View
-          </p>
+        <SidebarSection label="Learn" defaultOpen>
+          <AdminSidebarLinkClient href="/admin/training" label="Training Mgmt" />
+          <AdminSidebarLinkClient href="/admin/handbook" label="Handbook" />
+          <AdminSidebarLinkClient href="/admin/resources" label="Resources" />
+        </SidebarSection>
+
+        <SidebarSection label="Operate">
+          <AdminSidebarLinkClient href="/admin/readiness" label="Readiness" />
+        </SidebarSection>
+
+        <SidebarSection label="Comply">
+          <AdminSidebarLinkClient href="/admin/certifications" label="Certifications" />
+          <AdminSidebarLinkClient href="/admin/signing" label="Signing" />
+          <AdminSidebarLinkClient href="/admin/documents" label="Documents" />
+        </SidebarSection>
+
+        <SidebarSection label="People">
+          <AdminSidebarLinkClient href="/admin/staff" label="Staff" />
+          <AdminSidebarLinkClient href="/admin/recognition" label="Recognition" />
+          <AdminSidebarLinkClient href="/admin/talent" label="Talent" />
+        </SidebarSection>
+
+        <SidebarSection label="Develop">
+          <AdminSidebarLinkClient href="/admin/reviews" label="Reviews" />
+          <AdminSidebarLinkClient href="/admin/wellbeing" label="Wellbeing" />
+          <AdminSidebarLinkClient href="/admin/skills" label="Skills" />
+        </SidebarSection>
+
+        <SidebarSection label="Insights">
+          <AdminSidebarLinkClient href="/admin/analytics" label="Analytics" />
+        </SidebarSection>
+
+        <SidebarSection label="Staff View">
           <AdminSidebarLinkClient href="/passport" label="Passport" />
           <AdminSidebarLinkClient href="/training" label="Training" />
           <AdminSidebarLinkClient href="/profile" label="Profile" />
-        </div>
+        </SidebarSection>
       </nav>
 
       <div className="border-t border-white/10 px-5 py-3">

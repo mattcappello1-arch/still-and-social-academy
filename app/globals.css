@@ -58,3 +58,11 @@ body {
 ::-webkit-scrollbar-track { background: var(--cream-soft); }
 ::-webkit-scrollbar-thumb { background: var(--oatmeal); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--oatmeal-dk); }
+
+/* Print styles */
+@media print {
+  .no-print, nav, header, aside, footer { display: none !important; }
+  body { background: white !important; color: black !important; }
+  main { padding: 0 !important; }
+  .print-only { display: block !important; }
+}

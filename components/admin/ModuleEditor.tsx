@@ -243,9 +243,9 @@ export function ModuleEditor({
           </div>
         ) : (
           /* Edit mode */
-          <div className="space-y-2">
+          <div className="space-y-2" role="list" aria-label="Content blocks">
             {blocks.map((block, i) => (
-              <div key={i}>
+              <div key={i} role="listitem">
                 {/* Add-between button */}
                 <AddBetweenButton
                   index={i}
@@ -269,7 +269,7 @@ export function ModuleEditor({
                   {/* Block header */}
                   <div className="flex items-center justify-between border-b border-rule/50 px-4 py-2">
                     <div className="flex items-center gap-2">
-                      <span className="cursor-grab text-ink-soft select-none" title="Drag to reorder">{'\u22ee\u22ee'}</span>
+                      <span className="cursor-grab text-ink-soft select-none" role="img" aria-label="Drag to reorder" title="Drag to reorder">{'\u22ee\u22ee'}</span>
                       <span className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase">{block.type}</span>
                     </div>
                     <button

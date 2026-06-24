@@ -174,7 +174,7 @@ export default async function PassportPage() {
       {/* Welcome */}
       <div className="mb-8">
         <h1 className="font-serif text-3xl font-light text-ink">
-          {staff ? `${greeting}, ${staff.first_name}` : 'Welcome to the Academy'}
+          {staff ? `${greeting}, ${staff.first_name}` : 'Welcome to Still & Social'}
         </h1>
         <p className="mt-1 font-mono text-sm text-ink-soft">Your staff passport and training overview</p>
       </div>
