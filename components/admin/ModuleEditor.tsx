@@ -6,9 +6,14 @@ import { useState, useRef, useCallback } from 'react'
    Types
    ──────────────────────────────────────────── */
 
-type BlockType = 'text' | 'heading' | 'image' | 'video' | 'tip' | 'quote' | 'steps' | 'checklist' | 'divider' | 'callout' | 'accordion'
+type BlockType =
+  | 'text' | 'heading' | 'image' | 'video' | 'tip' | 'quote'
+  | 'steps' | 'checklist' | 'divider' | 'callout' | 'accordion'
+  | 'scenario' | 'flipcards' | 'hotspot' | 'timeline'
+  | 'matching' | 'reveal' | 'highlight' | 'comparison'
 
 interface BlockData {
+  // Existing
   html?: string
   text?: string
   level?: 2 | 3 | 4
@@ -21,6 +26,22 @@ interface BlockData {
   items?: unknown[]
   type?: 'info' | 'warning' | 'success'
   attribution?: string
+  // Scenario
+  situation?: string
+  options?: { text: string; correct: boolean; feedback: string }[]
+  // Hotspot
+  imageUrl?: string
+  spots?: { x: number; y: number; label: string; description: string }[]
+  // Matching
+  instruction?: string
+  pairs?: { left: string; right: string }[]
+  // Reveal
+  sections?: { title: string; content: string }[]
+  // Highlight
+  definitions?: Record<string, string>
+  // Comparison
+  before?: { label: string; text: string }
+  after?: { label: string; text: string }
 }
 
 interface Block {
@@ -32,18 +53,28 @@ interface Block {
    Block palette config
    ──────────────────────────────────────────── */
 
-const BLOCK_TYPES: { type: BlockType; label: string; icon: string; desc: string }[] = [
-  { type: 'text', label: 'Text', icon: 'T', desc: 'Rich text paragraph' },
-  { type: 'heading', label: 'Heading', icon: 'H', desc: 'Section heading' },
-  { type: 'image', label: 'Image', icon: '🖼', desc: 'Image with caption' },
-  { type: 'video', label: 'Video', icon: '▶', desc: 'YouTube/Vimeo/direct' },
-  { type: 'tip', label: 'Tip', icon: '💡', desc: 'Highlighted tip' },
-  { type: 'quote', label: 'Quote', icon: '❝', desc: 'Styled pullquote' },
-  { type: 'steps', label: 'Steps', icon: '①', desc: 'Step-by-step guide' },
-  { type: 'checklist', label: 'Checklist', icon: '☑', desc: 'Interactive checklist' },
-  { type: 'divider', label: 'Divider', icon: '···', desc: 'Visual separator' },
-  { type: 'callout', label: 'Callout', icon: '!', desc: 'Important info box' },
-  { type: 'accordion', label: 'Accordion', icon: '▸', desc: 'Expandable FAQ' },
+const BLOCK_TYPES: { type: BlockType; label: string; icon: string; desc: string; category: 'content' | 'interactive' }[] = [
+  // Content blocks
+  { type: 'text', label: 'Text', icon: 'T', desc: 'Rich text paragraph', category: 'content' },
+  { type: 'heading', label: 'Heading', icon: 'H', desc: 'Section heading', category: 'content' },
+  { type: 'image', label: 'Image', icon: '\u{1f5bc}', desc: 'Image with caption', category: 'content' },
+  { type: 'video', label: 'Video', icon: '\u25b6', desc: 'YouTube/Vimeo/direct', category: 'content' },
+  { type: 'tip', label: 'Tip', icon: '\u{1f4a1}', desc: 'Highlighted tip', category: 'content' },
+  { type: 'quote', label: 'Quote', icon: '\u275d', desc: 'Styled pullquote', category: 'content' },
+  { type: 'steps', label: 'Steps', icon: '\u2460', desc: 'Step-by-step guide', category: 'content' },
+  { type: 'checklist', label: 'Checklist', icon: '\u2611', desc: 'Interactive checklist', category: 'content' },
+  { type: 'divider', label: 'Divider', icon: '\u00b7\u00b7\u00b7', desc: 'Visual separator', category: 'content' },
+  { type: 'callout', label: 'Callout', icon: '!', desc: 'Important info box', category: 'content' },
+  { type: 'accordion', label: 'Accordion', icon: '\u25b8', desc: 'Expandable FAQ', category: 'content' },
+  // Interactive blocks
+  { type: 'scenario', label: 'Scenario', icon: '?', desc: 'What would you do?', category: 'interactive' },
+  { type: 'flipcards', label: 'Flip Cards', icon: '\u21bb', desc: 'Click to reveal cards', category: 'interactive' },
+  { type: 'hotspot', label: 'Hotspot', icon: '\u25c9', desc: 'Image with info dots', category: 'interactive' },
+  { type: 'timeline', label: 'Timeline', icon: '\u23f0', desc: 'Sequential process', category: 'interactive' },
+  { type: 'matching', label: 'Matching', icon: '\u2194', desc: 'Pair matching exercise', category: 'interactive' },
+  { type: 'reveal', label: 'Reveal', icon: '\u25bc', desc: 'Progressive content', category: 'interactive' },
+  { type: 'highlight', label: 'Highlight', icon: '\u270e', desc: 'Terms with definitions', category: 'interactive' },
+  { type: 'comparison', label: 'Compare', icon: '\u2b0c', desc: 'Before vs after', category: 'interactive' },
 ]
 
 function createEmptyBlock(type: BlockType): Block {
@@ -59,6 +90,14 @@ function createEmptyBlock(type: BlockType): Block {
     case 'divider': return { type, data: {} }
     case 'callout': return { type, data: { text: '', type: 'info' } }
     case 'accordion': return { type, data: { items: [{ title: '', content: '' }] } }
+    case 'scenario': return { type, data: { situation: '', options: [{ text: '', correct: true, feedback: '' }, { text: '', correct: false, feedback: '' }] } }
+    case 'flipcards': return { type, data: { items: [{ front: '', back: '' }] } }
+    case 'hotspot': return { type, data: { imageUrl: '', spots: [{ x: 50, y: 50, label: '', description: '' }] } }
+    case 'timeline': return { type, data: { items: [{ time: '', title: '', description: '' }] } }
+    case 'matching': return { type, data: { instruction: '', pairs: [{ left: '', right: '' }] } }
+    case 'reveal': return { type, data: { sections: [{ title: '', content: '' }] } }
+    case 'highlight': return { type, data: { text: '', definitions: {} } }
+    case 'comparison': return { type, data: { before: { label: 'Instead of this', text: '' }, after: { label: 'Try this', text: '' } } }
   }
 }
 
@@ -218,7 +257,7 @@ export function ModuleEditor({
                   {/* Block header */}
                   <div className="flex items-center justify-between border-b border-rule/50 px-4 py-2">
                     <div className="flex items-center gap-2">
-                      <span className="cursor-grab text-ink-soft select-none" title="Drag to reorder">⋮⋮</span>
+                      <span className="cursor-grab text-ink-soft select-none" title="Drag to reorder">{'\u22ee\u22ee'}</span>
                       <span className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase">{block.type}</span>
                     </div>
                     <button
@@ -299,9 +338,9 @@ export function ModuleEditor({
 
         {/* Block palette */}
         <div className="rounded-xl border border-rule bg-cream-soft p-5">
-          <h3 className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase mb-3">Add Block</h3>
+          <h3 className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase mb-3">Content Blocks</h3>
           <div className="grid grid-cols-2 gap-2">
-            {BLOCK_TYPES.map((bt) => (
+            {BLOCK_TYPES.filter(bt => bt.category === 'content').map((bt) => (
               <button
                 key={bt.type}
                 type="button"
@@ -309,6 +348,21 @@ export function ModuleEditor({
                 className="flex items-center gap-2 rounded-lg border border-rule bg-white/60 px-3 py-2 text-left transition hover:border-sienna/30 hover:bg-white"
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-cream-soft font-mono text-[10px] text-ink-soft">{bt.icon}</span>
+                <span className="font-mono text-[11px] text-ink">{bt.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <h3 className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase mt-5 mb-3">Interactive Blocks</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {BLOCK_TYPES.filter(bt => bt.category === 'interactive').map((bt) => (
+              <button
+                key={bt.type}
+                type="button"
+                onClick={() => addBlock(bt.type)}
+                className="flex items-center gap-2 rounded-lg border border-sienna/20 bg-sienna/5 px-3 py-2 text-left transition hover:border-sienna/40 hover:bg-sienna/10"
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-sienna/10 font-mono text-[10px] text-sienna">{bt.icon}</span>
                 <span className="font-mono text-[11px] text-ink">{bt.label}</span>
               </button>
             ))}
@@ -354,10 +408,10 @@ function AddBetweenButton({
       </button>
 
       {isOpen && (
-        <div ref={addMenuRef} className="absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 rounded-xl border border-rule bg-cream shadow-lg p-3 w-72">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase mb-2">Choose block type</p>
+        <div ref={addMenuRef} className="absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 rounded-xl border border-rule bg-cream shadow-lg p-3 w-80">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase mb-2">Content</p>
           <div className="grid grid-cols-2 gap-1.5">
-            {BLOCK_TYPES.map((bt) => (
+            {BLOCK_TYPES.filter(bt => bt.category === 'content').map((bt) => (
               <button
                 key={bt.type}
                 type="button"
@@ -365,6 +419,23 @@ function AddBetweenButton({
                 className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-left transition hover:bg-sienna/5"
               >
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-cream-soft font-mono text-[10px] text-ink-soft">{bt.icon}</span>
+                <div>
+                  <span className="block font-mono text-[11px] text-ink leading-tight">{bt.label}</span>
+                  <span className="block font-mono text-[9px] text-ink-soft leading-tight">{bt.desc}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+          <p className="font-mono text-[10px] tracking-[0.2em] text-sienna uppercase mt-3 mb-2">Interactive</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {BLOCK_TYPES.filter(bt => bt.category === 'interactive').map((bt) => (
+              <button
+                key={bt.type}
+                type="button"
+                onClick={() => addBlock(bt.type, index)}
+                className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-left transition hover:bg-sienna/5"
+              >
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-sienna/10 font-mono text-[10px] text-sienna">{bt.icon}</span>
                 <div>
                   <span className="block font-mono text-[11px] text-ink leading-tight">{bt.label}</span>
                   <span className="block font-mono text-[9px] text-ink-soft leading-tight">{bt.desc}</span>
@@ -529,7 +600,7 @@ function BlockEditor({
     case 'divider':
       return (
         <div className="flex items-center justify-center py-2 text-oatmeal select-none">
-          <span>· · ·</span>
+          <span>{'\u00b7 \u00b7 \u00b7'}</span>
         </div>
       )
 
@@ -563,13 +634,39 @@ function BlockEditor({
     case 'accordion':
       return <AccordionEditor block={block} index={index} updateBlock={updateBlock} />
 
+    /* ── New interactive block editors ── */
+
+    case 'scenario':
+      return <ScenarioEditor block={block} index={index} updateBlock={updateBlock} />
+
+    case 'flipcards':
+      return <FlipCardsEditor block={block} index={index} updateBlock={updateBlock} />
+
+    case 'hotspot':
+      return <HotspotEditor block={block} index={index} updateBlock={updateBlock} />
+
+    case 'timeline':
+      return <TimelineEditor block={block} index={index} updateBlock={updateBlock} />
+
+    case 'matching':
+      return <MatchingEditor block={block} index={index} updateBlock={updateBlock} />
+
+    case 'reveal':
+      return <RevealEditor block={block} index={index} updateBlock={updateBlock} />
+
+    case 'highlight':
+      return <HighlightEditor block={block} index={index} updateBlock={updateBlock} />
+
+    case 'comparison':
+      return <ComparisonEditor block={block} index={index} updateBlock={updateBlock} />
+
     default:
       return <p className="font-mono text-xs text-ink-soft">Unknown block type</p>
   }
 }
 
 /* ────────────────────────────────────────────
-   Steps editor
+   Existing editors
    ──────────────────────────────────────────── */
 
 function StepsEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
@@ -627,10 +724,6 @@ function StepsEditor({ block, index, updateBlock }: { block: Block; index: numbe
   )
 }
 
-/* ────────────────────────────────────────────
-   Checklist editor
-   ──────────────────────────────────────────── */
-
 function ChecklistEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
   const items = (block.data.items as string[]) ?? []
 
@@ -642,7 +735,7 @@ function ChecklistEditor({ block, index, updateBlock }: { block: Block; index: n
     <div className="space-y-2">
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="text-ink-soft">☐</span>
+          <span className="text-ink-soft">{'\u2610'}</span>
           <input
             value={item}
             onChange={(e) => {
@@ -673,10 +766,6 @@ function ChecklistEditor({ block, index, updateBlock }: { block: Block; index: n
   )
 }
 
-/* ────────────────────────────────────────────
-   Accordion editor
-   ──────────────────────────────────────────── */
-
 function AccordionEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
   const items = (block.data.items as { title: string; content: string }[]) ?? []
 
@@ -689,7 +778,7 @@ function AccordionEditor({ block, index, updateBlock }: { block: Block; index: n
       {items.map((item, i) => (
         <div key={i} className="rounded-lg border border-rule/50 p-3 space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="text-ink-soft text-xs">▸</span>
+            <span className="text-ink-soft text-xs">{'\u25b8'}</span>
             <input
               value={item.title}
               onChange={(e) => {
@@ -728,6 +817,498 @@ function AccordionEditor({ block, index, updateBlock }: { block: Block; index: n
       >
         + Add item
       </button>
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────
+   New interactive block editors
+   ──────────────────────────────────────────── */
+
+function ScenarioEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
+  const options = (block.data.options as { text: string; correct: boolean; feedback: string }[]) ?? []
+
+  return (
+    <div className="space-y-3">
+      <textarea
+        value={block.data.situation ?? ''}
+        onChange={(e) => updateBlock(index, { situation: e.target.value })}
+        placeholder="Describe the scenario / situation..."
+        rows={3}
+        className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-olive resize-y"
+      />
+      <p className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase">Options</p>
+      {options.map((opt, i) => (
+        <div key={i} className="rounded-lg border border-rule/50 p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 font-mono text-xs text-ink-soft shrink-0">
+              <input
+                type="radio"
+                name={`scenario-correct-${index}`}
+                checked={opt.correct}
+                onChange={() => {
+                  const next = options.map((o, j) => ({ ...o, correct: j === i }))
+                  updateBlock(index, { options: next })
+                }}
+                className="accent-sage"
+              />
+              Correct
+            </label>
+            <input
+              value={opt.text}
+              onChange={(e) => {
+                const next = [...options]
+                next[i] = { ...next[i], text: e.target.value }
+                updateBlock(index, { options: next })
+              }}
+              placeholder="Option text..."
+              className="flex-1 bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+            />
+            <button
+              type="button"
+              onClick={() => updateBlock(index, { options: options.filter((_, j) => j !== i) })}
+              className="rounded p-1 text-ink-soft hover:text-rosewood transition"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <input
+            value={opt.feedback}
+            onChange={(e) => {
+              const next = [...options]
+              next[i] = { ...next[i], feedback: e.target.value }
+              updateBlock(index, { options: next })
+            }}
+            placeholder="Feedback shown after selection..."
+            className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+          />
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => updateBlock(index, { options: [...options, { text: '', correct: false, feedback: '' }] })}
+        className="font-mono text-xs text-sienna hover:underline"
+      >
+        + Add option
+      </button>
+    </div>
+  )
+}
+
+function FlipCardsEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
+  const items = (block.data.items as { front: string; back: string }[]) ?? []
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, i) => (
+        <div key={i} className="rounded-lg border border-rule/50 p-3 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <input
+              value={item.front}
+              onChange={(e) => {
+                const next = [...items]
+                next[i] = { ...next[i], front: e.target.value }
+                updateBlock(index, { items: next })
+              }}
+              placeholder="Front (visible)..."
+              className="flex-1 bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+            />
+            <button
+              type="button"
+              onClick={() => updateBlock(index, { items: items.filter((_, j) => j !== i) })}
+              className="rounded p-1 text-ink-soft hover:text-rosewood transition"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <textarea
+            value={item.back}
+            onChange={(e) => {
+              const next = [...items]
+              next[i] = { ...next[i], back: e.target.value }
+              updateBlock(index, { items: next })
+            }}
+            placeholder="Back (revealed on flip)..."
+            rows={2}
+            className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive resize-y"
+          />
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => updateBlock(index, { items: [...items, { front: '', back: '' }] })}
+        className="font-mono text-xs text-sienna hover:underline"
+      >
+        + Add card
+      </button>
+    </div>
+  )
+}
+
+function HotspotEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
+  const spots = (block.data.spots as { x: number; y: number; label: string; description: string }[]) ?? []
+
+  return (
+    <div className="space-y-3">
+      <input
+        value={block.data.imageUrl ?? ''}
+        onChange={(e) => updateBlock(index, { imageUrl: e.target.value })}
+        placeholder="Image URL..."
+        className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-olive"
+      />
+      {block.data.imageUrl && (
+        <div className="rounded-lg border border-rule overflow-hidden max-h-32">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={block.data.imageUrl} alt="preview" className="w-full h-32 object-cover" />
+        </div>
+      )}
+      <p className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase">Hotspot points</p>
+      {spots.map((spot, i) => (
+        <div key={i} className="rounded-lg border border-rule/50 p-3 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-2 shrink-0">
+              <input
+                type="number"
+                value={spot.x}
+                onChange={(e) => {
+                  const next = [...spots]
+                  next[i] = { ...next[i], x: parseFloat(e.target.value) || 0 }
+                  updateBlock(index, { spots: next })
+                }}
+                placeholder="X%"
+                className="w-16 bg-cream-soft/30 border border-rule rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-olive"
+              />
+              <input
+                type="number"
+                value={spot.y}
+                onChange={(e) => {
+                  const next = [...spots]
+                  next[i] = { ...next[i], y: parseFloat(e.target.value) || 0 }
+                  updateBlock(index, { spots: next })
+                }}
+                placeholder="Y%"
+                className="w-16 bg-cream-soft/30 border border-rule rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-olive"
+              />
+            </div>
+            <input
+              value={spot.label}
+              onChange={(e) => {
+                const next = [...spots]
+                next[i] = { ...next[i], label: e.target.value }
+                updateBlock(index, { spots: next })
+              }}
+              placeholder="Label..."
+              className="flex-1 bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+            />
+            <button
+              type="button"
+              onClick={() => updateBlock(index, { spots: spots.filter((_, j) => j !== i) })}
+              className="rounded p-1 text-ink-soft hover:text-rosewood transition"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <input
+            value={spot.description}
+            onChange={(e) => {
+              const next = [...spots]
+              next[i] = { ...next[i], description: e.target.value }
+              updateBlock(index, { spots: next })
+            }}
+            placeholder="Description..."
+            className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+          />
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => updateBlock(index, { spots: [...spots, { x: 50, y: 50, label: '', description: '' }] })}
+        className="font-mono text-xs text-sienna hover:underline"
+      >
+        + Add hotspot
+      </button>
+    </div>
+  )
+}
+
+function TimelineEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
+  const items = (block.data.items as { time: string; title: string; description: string }[]) ?? []
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, i) => (
+        <div key={i} className="flex gap-3 items-start">
+          <div className="flex h-3 w-3 shrink-0 mt-3 rounded-full bg-sienna/30" />
+          <div className="flex-1 space-y-1.5">
+            <div className="flex gap-2">
+              <input
+                value={item.time}
+                onChange={(e) => {
+                  const next = [...items]
+                  next[i] = { ...next[i], time: e.target.value }
+                  updateBlock(index, { items: next })
+                }}
+                placeholder="Time / label..."
+                className="w-28 bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+              />
+              <input
+                value={item.title}
+                onChange={(e) => {
+                  const next = [...items]
+                  next[i] = { ...next[i], title: e.target.value }
+                  updateBlock(index, { items: next })
+                }}
+                placeholder="Title..."
+                className="flex-1 bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+              />
+            </div>
+            <textarea
+              value={item.description}
+              onChange={(e) => {
+                const next = [...items]
+                next[i] = { ...next[i], description: e.target.value }
+                updateBlock(index, { items: next })
+              }}
+              placeholder="Description..."
+              rows={2}
+              className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive resize-y"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => updateBlock(index, { items: items.filter((_, j) => j !== i) })}
+            className="mt-1 rounded p-1 text-ink-soft hover:text-rosewood transition"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => updateBlock(index, { items: [...items, { time: '', title: '', description: '' }] })}
+        className="font-mono text-xs text-sienna hover:underline"
+      >
+        + Add timeline item
+      </button>
+    </div>
+  )
+}
+
+function MatchingEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
+  const pairs = (block.data.pairs as { left: string; right: string }[]) ?? []
+
+  return (
+    <div className="space-y-3">
+      <input
+        value={block.data.instruction ?? ''}
+        onChange={(e) => updateBlock(index, { instruction: e.target.value })}
+        placeholder="Instruction text (e.g. Match each wine to its food pairing)..."
+        className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-olive"
+      />
+      <p className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase">Pairs</p>
+      {pairs.map((pair, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <input
+            value={pair.left}
+            onChange={(e) => {
+              const next = [...pairs]
+              next[i] = { ...next[i], left: e.target.value }
+              updateBlock(index, { pairs: next })
+            }}
+            placeholder="Left item..."
+            className="flex-1 bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+          />
+          <span className="text-ink-soft text-xs">{'\u2194'}</span>
+          <input
+            value={pair.right}
+            onChange={(e) => {
+              const next = [...pairs]
+              next[i] = { ...next[i], right: e.target.value }
+              updateBlock(index, { pairs: next })
+            }}
+            placeholder="Right item..."
+            className="flex-1 bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+          />
+          <button
+            type="button"
+            onClick={() => updateBlock(index, { pairs: pairs.filter((_, j) => j !== i) })}
+            className="rounded p-1 text-ink-soft hover:text-rosewood transition"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => updateBlock(index, { pairs: [...pairs, { left: '', right: '' }] })}
+        className="font-mono text-xs text-sienna hover:underline"
+      >
+        + Add pair
+      </button>
+    </div>
+  )
+}
+
+function RevealEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
+  const sections = (block.data.sections as { title: string; content: string }[]) ?? []
+
+  return (
+    <div className="space-y-3">
+      {sections.map((section, i) => (
+        <div key={i} className="rounded-lg border border-rule/50 p-3 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] text-ink-soft shrink-0">#{i + 1}</span>
+            <input
+              value={section.title}
+              onChange={(e) => {
+                const next = [...sections]
+                next[i] = { ...next[i], title: e.target.value }
+                updateBlock(index, { sections: next })
+              }}
+              placeholder="Section title..."
+              className="flex-1 bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+            />
+            <button
+              type="button"
+              onClick={() => updateBlock(index, { sections: sections.filter((_, j) => j !== i) })}
+              className="rounded p-1 text-ink-soft hover:text-rosewood transition"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <textarea
+            value={section.content}
+            onChange={(e) => {
+              const next = [...sections]
+              next[i] = { ...next[i], content: e.target.value }
+              updateBlock(index, { sections: next })
+            }}
+            placeholder="Section content..."
+            rows={2}
+            className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive resize-y"
+          />
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => updateBlock(index, { sections: [...sections, { title: '', content: '' }] })}
+        className="font-mono text-xs text-sienna hover:underline"
+      >
+        + Add section
+      </button>
+    </div>
+  )
+}
+
+function HighlightEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
+  const definitions = (block.data.definitions as Record<string, string>) ?? {}
+  const defEntries = Object.entries(definitions)
+  const [newTerm, setNewTerm] = useState('')
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="font-mono text-[10px] text-ink-soft mb-1">Wrap terms in {'{'}curly braces{'}'} to make them interactive</p>
+        <textarea
+          value={block.data.text ?? ''}
+          onChange={(e) => updateBlock(index, { text: e.target.value })}
+          placeholder="At Still and Social, we practice {intentional hospitality} through {presence}..."
+          rows={3}
+          className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-olive resize-y"
+        />
+      </div>
+      <p className="font-mono text-[10px] tracking-[0.2em] text-ink-soft uppercase">Definitions</p>
+      {defEntries.map(([term, def], i) => (
+        <div key={i} className="flex items-start gap-2">
+          <span className="mt-2 font-mono text-xs text-sienna shrink-0 min-w-[80px]">{term}</span>
+          <input
+            value={def}
+            onChange={(e) => {
+              const next = { ...definitions, [term]: e.target.value }
+              updateBlock(index, { definitions: next })
+            }}
+            placeholder="Definition..."
+            className="flex-1 bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const next = { ...definitions }
+              delete next[term]
+              updateBlock(index, { definitions: next })
+            }}
+            className="mt-1 rounded p-1 text-ink-soft hover:text-rosewood transition"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+      ))}
+      <div className="flex items-center gap-2">
+        <input
+          value={newTerm}
+          onChange={(e) => setNewTerm(e.target.value)}
+          placeholder="New term..."
+          className="w-40 bg-cream-soft/30 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && newTerm.trim()) {
+              updateBlock(index, { definitions: { ...definitions, [newTerm.trim()]: '' } })
+              setNewTerm('')
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            if (newTerm.trim()) {
+              updateBlock(index, { definitions: { ...definitions, [newTerm.trim()]: '' } })
+              setNewTerm('')
+            }
+          }}
+          className="font-mono text-xs text-sienna hover:underline"
+        >
+          + Add definition
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ComparisonEditor({ block, index, updateBlock }: { block: Block; index: number; updateBlock: (i: number, d: BlockData) => void }) {
+  const before = (block.data.before as { label: string; text: string }) ?? { label: 'Instead of this', text: '' }
+  const after = (block.data.after as { label: string; text: string }) ?? { label: 'Try this', text: '' }
+
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-2 rounded-lg border border-rosewood/20 bg-rosewood/5 p-3">
+        <input
+          value={before.label}
+          onChange={(e) => updateBlock(index, { before: { ...before, label: e.target.value } })}
+          placeholder="Label (e.g. Instead of this)..."
+          className="w-full bg-white/60 border border-rule rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-olive"
+        />
+        <textarea
+          value={before.text}
+          onChange={(e) => updateBlock(index, { before: { ...before, text: e.target.value } })}
+          placeholder="Describe the wrong approach..."
+          rows={3}
+          className="w-full bg-white/60 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive resize-y"
+        />
+      </div>
+      <div className="space-y-2 rounded-lg border border-sage/30 bg-sage/5 p-3">
+        <input
+          value={after.label}
+          onChange={(e) => updateBlock(index, { after: { ...after, label: e.target.value } })}
+          placeholder="Label (e.g. Try this)..."
+          className="w-full bg-white/60 border border-rule rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-olive"
+        />
+        <textarea
+          value={after.text}
+          onChange={(e) => updateBlock(index, { after: { ...after, text: e.target.value } })}
+          placeholder="Describe the right approach..."
+          rows={3}
+          className="w-full bg-white/60 border border-rule rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-olive resize-y"
+        />
+      </div>
     </div>
   )
 }
@@ -791,12 +1372,12 @@ function PreviewBlock({ block }: { block: Block }) {
       return (
         <div className="space-y-1">
           {((block.data.items as string[]) ?? []).map((item, i) => (
-            <div key={i} className="flex items-center gap-2 font-mono text-sm text-ink-soft"><span>☐</span> {item}</div>
+            <div key={i} className="flex items-center gap-2 font-mono text-sm text-ink-soft"><span>{'\u2610'}</span> {item}</div>
           ))}
         </div>
       )
     case 'divider':
-      return <div className="flex items-center justify-center gap-3 py-2 text-oatmeal select-none"><span>·</span><span>·</span><span>·</span></div>
+      return <div className="flex items-center justify-center gap-3 py-2 text-oatmeal select-none"><span>{'\u00b7'}</span><span>{'\u00b7'}</span><span>{'\u00b7'}</span></div>
     case 'callout': {
       const ct = block.data.type ?? 'info'
       const colors = { info: 'border-olive bg-olive/5', warning: 'border-sienna bg-sienna/5', success: 'border-sage bg-sage/5' }
@@ -811,9 +1392,71 @@ function PreviewBlock({ block }: { block: Block }) {
         <div className="divide-y divide-rule overflow-hidden rounded-xl border border-rule">
           {((block.data.items as { title: string; content: string }[]) ?? []).map((item, i) => (
             <div key={i} className="bg-white/60 px-5 py-3">
-              <p className="font-mono text-sm font-medium text-ink">▸ {item.title}</p>
+              <p className="font-mono text-sm font-medium text-ink">{'\u25b8'} {item.title}</p>
             </div>
           ))}
+        </div>
+      )
+    // Preview for interactive blocks
+    case 'scenario':
+      return (
+        <div className="rounded-xl border border-rule bg-charcoal/5 p-4">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-sienna uppercase mb-1">Scenario</p>
+          <p className="font-mono text-sm text-ink">{block.data.situation}</p>
+          <p className="font-mono text-xs text-ink-soft mt-1">{(block.data.options as unknown[])?.length ?? 0} options</p>
+        </div>
+      )
+    case 'flipcards':
+      return (
+        <div className="rounded-xl border border-rule bg-charcoal/5 p-4">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-sienna uppercase mb-1">Flip Cards</p>
+          <p className="font-mono text-xs text-ink-soft">{(block.data.items as unknown[])?.length ?? 0} cards</p>
+        </div>
+      )
+    case 'hotspot':
+      return (
+        <div className="rounded-xl border border-rule bg-charcoal/5 p-4">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-sienna uppercase mb-1">Image Hotspot</p>
+          <p className="font-mono text-xs text-ink-soft">{(block.data.spots as unknown[])?.length ?? 0} points</p>
+        </div>
+      )
+    case 'timeline':
+      return (
+        <div className="rounded-xl border border-rule bg-charcoal/5 p-4">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-sienna uppercase mb-1">Timeline</p>
+          <p className="font-mono text-xs text-ink-soft">{(block.data.items as unknown[])?.length ?? 0} items</p>
+        </div>
+      )
+    case 'matching':
+      return (
+        <div className="rounded-xl border border-rule bg-charcoal/5 p-4">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-sienna uppercase mb-1">Matching</p>
+          <p className="font-mono text-xs text-ink-soft">{block.data.instruction} ({(block.data.pairs as unknown[])?.length ?? 0} pairs)</p>
+        </div>
+      )
+    case 'reveal':
+      return (
+        <div className="rounded-xl border border-rule bg-charcoal/5 p-4">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-sienna uppercase mb-1">Progressive Reveal</p>
+          <p className="font-mono text-xs text-ink-soft">{(block.data.sections as unknown[])?.length ?? 0} sections</p>
+        </div>
+      )
+    case 'highlight':
+      return (
+        <div className="rounded-xl border border-rule bg-charcoal/5 p-4">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-sienna uppercase mb-1">Highlight Text</p>
+          <p className="font-mono text-xs text-ink-soft">{Object.keys(block.data.definitions ?? {}).length} definitions</p>
+        </div>
+      )
+    case 'comparison':
+      return (
+        <div className="rounded-xl border border-rule bg-charcoal/5 p-4 grid grid-cols-2 gap-2">
+          <div className="rounded border border-rosewood/20 bg-rosewood/5 px-3 py-2">
+            <p className="font-mono text-[10px] text-rosewood uppercase">{(block.data.before as { label: string })?.label}</p>
+          </div>
+          <div className="rounded border border-sage/30 bg-sage/5 px-3 py-2">
+            <p className="font-mono text-[10px] text-sage uppercase">{(block.data.after as { label: string })?.label}</p>
+          </div>
         </div>
       )
     default:

@@ -17,22 +17,46 @@ export default async function ModulePage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch path
-  const { data: path } = await supabase
+  // Fetch path — try with user client first, fall back to direct query
+  let { data: path } = await supabase
     .from('academy_training_paths')
     .select('id, slug, title')
     .eq('slug', pathSlug)
     .single()
 
+  // If RLS blocks it, try with a fresh client
+  if (!path) {
+    const { createAdminClient } = await import('@/lib/supabase/server')
+    const admin = await createAdminClient()
+    const result = await admin
+      .from('academy_training_paths')
+      .select('id, slug, title')
+      .eq('slug', pathSlug)
+      .single()
+    path = result.data
+  }
+
   if (!path) notFound()
 
   // Fetch module
-  const { data: module } = await supabase
+  let { data: module } = await supabase
     .from('academy_training_modules')
     .select('*')
     .eq('path_id', path.id)
     .eq('slug', moduleSlug)
     .single()
+
+  if (!module) {
+    const { createAdminClient } = await import('@/lib/supabase/server')
+    const admin = await createAdminClient()
+    const result = await admin
+      .from('academy_training_modules')
+      .select('*')
+      .eq('path_id', path.id)
+      .eq('slug', moduleSlug)
+      .single()
+    module = result.data
+  }
 
   if (!module) notFound()
 

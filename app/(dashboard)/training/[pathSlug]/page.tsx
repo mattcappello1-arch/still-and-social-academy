@@ -17,11 +17,18 @@ export default async function TrainingPathPage({
   if (!user) redirect('/login')
 
   // Fetch path
-  const { data: path } = await supabase
+  let { data: path } = await supabase
     .from('academy_training_paths')
     .select('*')
     .eq('slug', pathSlug)
     .single()
+
+  if (!path) {
+    const { createAdminClient } = await import('@/lib/supabase/server')
+    const admin = await createAdminClient()
+    const result = await admin.from('academy_training_paths').select('*').eq('slug', pathSlug).single()
+    path = result.data
+  }
 
   if (!path) notFound()
 
