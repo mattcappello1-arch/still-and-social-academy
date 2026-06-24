@@ -44,11 +44,27 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-8">
-        <h1 className="font-serif text-3xl font-light text-ink">Profile</h1>
+      <div className="mb-6">
+        <h1 className="font-serif text-3xl font-light text-ink">People</h1>
         <p className="mt-1 font-mono text-sm text-ink-soft">
-          Manage your personal details and information
+          Your profile, documents, and team
         </p>
+      </div>
+
+      {/* Quick links */}
+      <div className="mb-8 grid gap-3 sm:grid-cols-3">
+        <a href="/profile" className="rounded-xl border-2 border-sienna/20 bg-sienna/5 p-4">
+          <p className="font-mono text-sm font-medium text-ink">Profile</p>
+          <p className="font-mono text-xs text-ink-soft">Your personal details</p>
+        </a>
+        <a href="/documents" className="rounded-xl border border-rule bg-white/60 p-4 hover:border-sienna/30 transition">
+          <p className="font-mono text-sm font-medium text-ink">Documents</p>
+          <p className="font-mono text-xs text-ink-soft">Sign and view documents</p>
+        </a>
+        <a href="/team" className="rounded-xl border border-rule bg-white/60 p-4 hover:border-sienna/30 transition">
+          <p className="font-mono text-sm font-medium text-ink">Team</p>
+          <p className="font-mono text-xs text-ink-soft">Your team directory</p>
+        </a>
       </div>
 
       {/* Staff info card */}

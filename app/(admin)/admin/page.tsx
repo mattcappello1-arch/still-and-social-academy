@@ -411,6 +411,37 @@ export default async function AdminDashboard() {
           )}
         </div>
       </section>
+
+      {/* All Admin Functions — 2 click access to everything */}
+      <section className="mb-8">
+        <h2 className="mb-4 font-serif text-xl font-light text-ink">All Admin</h2>
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {[
+            { href: '/admin/staff', label: 'Staff', desc: 'Manage team members' },
+            { href: '/admin/staff/new', label: 'Invite Staff', desc: 'Add new team member' },
+            { href: '/admin/training', label: 'Training', desc: 'Manage modules' },
+            { href: '/admin/reviews', label: 'Reviews', desc: 'Performance reviews' },
+            { href: '/admin/certifications', label: 'Certifications', desc: 'Cert management' },
+            { href: '/admin/wellbeing', label: 'Wellbeing', desc: 'Team check-ins' },
+            { href: '/admin/recognition', label: 'Recognition', desc: 'Award badges' },
+            { href: '/admin/skills', label: 'Skills', desc: 'Skill assessments' },
+            { href: '/admin/signing', label: 'Signing', desc: 'Document signing' },
+            { href: '/admin/documents', label: 'Templates', desc: 'Doc templates' },
+            { href: '/admin/handbook', label: 'Handbook', desc: 'Manage sections' },
+            { href: '/admin/resources', label: 'Resources', desc: 'Learning library' },
+            { href: '/admin/readiness', label: 'Readiness', desc: 'Shift readiness' },
+            { href: '/admin/signoffs', label: 'Sign-Offs', desc: 'Module approvals' },
+            { href: '/admin/talent', label: 'Talent', desc: 'Promotion pipeline' },
+            { href: '/admin/analytics', label: 'Analytics', desc: 'Reports & data' },
+          ].map((item) => (
+            <a key={item.href} href={item.href}
+              className="rounded-xl border border-rule bg-white/60 p-4 transition hover:border-sienna/30 hover:shadow-sm">
+              <p className="font-mono text-sm font-medium text-ink">{item.label}</p>
+              <p className="font-mono text-[11px] text-ink-soft mt-0.5">{item.desc}</p>
+            </a>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }

@@ -188,26 +188,21 @@ export default async function LearnHubPage() {
       </section>
 
       {/* Quick links */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Link href="/training"
+          className="rounded-xl border border-rule bg-white/60 p-5 transition hover:shadow-sm hover:border-sienna/30 group">
+          <h3 className="font-mono text-sm font-medium text-ink group-hover:text-sienna transition mb-1">All Training</h3>
+          <p className="font-mono text-xs text-ink-soft">Browse all your training paths</p>
+        </Link>
         <Link href="/handbook"
           className="rounded-xl border border-rule bg-white/60 p-5 transition hover:shadow-sm hover:border-sienna/30 group">
-          <div className="flex items-center gap-3 mb-2">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sienna">
-              <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
-            </svg>
-            <h3 className="font-mono text-sm font-medium text-ink group-hover:text-sienna transition">Browse Handbook</h3>
-          </div>
+          <h3 className="font-mono text-sm font-medium text-ink group-hover:text-sienna transition mb-1">Handbook</h3>
           <p className="font-mono text-xs text-ink-soft">Policies, procedures, and guides</p>
         </Link>
         <Link href="/resources"
           className="rounded-xl border border-rule bg-white/60 p-5 transition hover:shadow-sm hover:border-sienna/30 group">
-          <div className="flex items-center gap-3 mb-2">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sienna">
-              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
-            </svg>
-            <h3 className="font-mono text-sm font-medium text-ink group-hover:text-sienna transition">View Resources</h3>
-          </div>
-          <p className="font-mono text-xs text-ink-soft">Forms, templates, and reference materials</p>
+          <h3 className="font-mono text-sm font-medium text-ink group-hover:text-sienna transition mb-1">Resources</h3>
+          <p className="font-mono text-xs text-ink-soft">Forms, templates, and references</p>
         </Link>
       </div>
     </div>
