@@ -1,6 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getRoleLabel, getDepartment, getDepartmentLabel } from '@/lib/utils/roles'
 import type { Role } from '@/lib/utils/roles'
+import { BulkStaffTable } from './bulk-actions'
 
 export default async function StaffListPage({
   searchParams,
@@ -41,6 +42,13 @@ export default async function StaffListPage({
 
   const { data: staff } = await staffQuery
 
+  // Fetch signing documents for bulk action dropdown
+  const admin = await createAdminClient()
+  const { data: signingDocs } = await admin
+    .from('academy_signing_documents')
+    .select('id, title, doc_type')
+    .order('created_at', { ascending: false })
+
   const activeFilters = [query, roleFilter, departmentFilter, statusFilter].filter(Boolean).length
 
   return (
@@ -53,13 +61,22 @@ export default async function StaffListPage({
             {staff && <span className="ml-1">({staff.length} {staff.length === 1 ? 'member' : 'members'})</span>}
           </p>
         </div>
-        <a
-          href="/admin/staff/new"
-          className="flex items-center gap-2 rounded-lg bg-charcoal px-4 py-2.5 font-mono text-sm font-medium tracking-wide text-cream transition hover:bg-sienna active:scale-[0.98]"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6M23 11h-6" /></svg>
-          Invite Staff
-        </a>
+        <div className="flex items-center gap-3">
+          <a
+            href="/api/admin/export-staff"
+            className="flex items-center gap-2 rounded-lg border border-rule px-4 py-2.5 font-mono text-sm tracking-wide text-ink-soft transition hover:border-sienna/30 hover:text-sienna"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+            Export CSV
+          </a>
+          <a
+            href="/admin/staff/new"
+            className="flex items-center gap-2 rounded-lg bg-charcoal px-4 py-2.5 font-mono text-sm font-medium tracking-wide text-cream transition hover:bg-sienna active:scale-[0.98]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6M23 11h-6" /></svg>
+            Invite Staff
+          </a>
+        </div>
       </div>
 
       {success && (
@@ -141,71 +158,96 @@ export default async function StaffListPage({
         </div>
       </form>
 
-      {/* Staff table */}
+      {/* Staff table with bulk actions */}
       {staff && staff.length > 0 ? (
-        <div className="overflow-hidden rounded-xl border border-rule bg-white/60">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
-              <thead>
-                <tr className="border-b border-rule">
-                  <Th>Name</Th>
-                  <Th>Email</Th>
-                  <Th>Role</Th>
-                  <Th>Department</Th>
-                  <Th>Status</Th>
-                  <Th>Start Date</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {staff.map(
-                  (s: {
-                    id: string
-                    first_name: string
-                    last_name: string
-                    email: string
-                    role: string
-                    department: string
-                    status: string
-                    start_date: string | null
-                    employment_type: string | null
-                  }) => (
-                    <tr
-                      key={s.id}
-                      className="border-b border-rule transition last:border-b-0 hover:bg-cream-soft/30"
-                    >
-                      <td className="px-4 py-3 font-mono text-sm font-medium text-ink">
-                        <a href={`/admin/staff/${s.id}`} className="hover:text-sienna transition">
-                          {s.first_name} {s.last_name}
-                        </a>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-sm text-ink-soft">
-                        {s.email}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-sm text-ink-soft">
-                        {getRoleLabel(s.role as Role)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <DepartmentBadge department={s.department} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={s.status} />
-                      </td>
-                      <td className="px-4 py-3 font-mono text-sm text-ink-soft">
-                        {s.start_date
-                          ? new Date(s.start_date).toLocaleDateString('en-AU', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })
-                          : '—'}
-                      </td>
+        <BulkStaffTable
+          staff={staff as any}
+          documents={(signingDocs ?? []) as any}
+        >
+          {({ selectedIds, toggleId, toggleAll, allSelected }) => (
+            <div className="overflow-hidden rounded-xl border border-rule bg-white/60">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px]">
+                  <thead>
+                    <tr className="border-b border-rule">
+                      <th className="w-10 px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleAll}
+                          className="h-4 w-4 rounded border-rule text-sienna accent-sienna"
+                        />
+                      </th>
+                      <Th>Name</Th>
+                      <Th>Email</Th>
+                      <Th>Role</Th>
+                      <Th>Department</Th>
+                      <Th>Status</Th>
+                      <Th>Start Date</Th>
                     </tr>
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </thead>
+                  <tbody>
+                    {staff.map(
+                      (s: {
+                        id: string
+                        first_name: string
+                        last_name: string
+                        email: string
+                        role: string
+                        department: string
+                        status: string
+                        start_date: string | null
+                        employment_type: string | null
+                      }) => (
+                        <tr
+                          key={s.id}
+                          className={`border-b border-rule transition last:border-b-0 hover:bg-cream-soft/30 ${
+                            selectedIds.includes(s.id) ? 'bg-sienna/5' : ''
+                          }`}
+                        >
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(s.id)}
+                              onChange={() => toggleId(s.id)}
+                              className="h-4 w-4 rounded border-rule text-sienna accent-sienna"
+                            />
+                          </td>
+                          <td className="px-4 py-3 font-mono text-sm font-medium text-ink">
+                            <a href={`/admin/staff/${s.id}`} className="hover:text-sienna transition">
+                              {s.first_name} {s.last_name}
+                            </a>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-sm text-ink-soft">
+                            {s.email}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-sm text-ink-soft">
+                            {getRoleLabel(s.role as Role)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <DepartmentBadge department={s.department} />
+                          </td>
+                          <td className="px-4 py-3">
+                            <StatusBadge status={s.status} />
+                          </td>
+                          <td className="px-4 py-3 font-mono text-sm text-ink-soft">
+                            {s.start_date
+                              ? new Date(s.start_date).toLocaleDateString('en-AU', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })
+                              : '\u2014'}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </BulkStaffTable>
       ) : (
         <div className="rounded-xl border border-dashed border-oatmeal bg-cream-soft/50 px-6 py-12 text-center">
           <p className="font-mono text-sm text-ink-soft">

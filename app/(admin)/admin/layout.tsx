@@ -84,6 +84,7 @@ function AdminSidebarContent() {
             Admin
           </p>
           <AdminSidebarLinkClient href="/admin" label="Overview" />
+          <AdminSidebarLinkClient href="/admin/analytics" label="Analytics" />
           <AdminSidebarLinkClient href="/admin/staff" label="Staff" />
           <AdminSidebarLinkClient href="/admin/training" label="Training Mgmt" />
           <AdminSidebarLinkClient href="/admin/reviews" label="Reviews" />

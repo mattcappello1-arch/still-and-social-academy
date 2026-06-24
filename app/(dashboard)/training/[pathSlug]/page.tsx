@@ -143,6 +143,17 @@ export default async function TrainingPathPage({
           </p>
         </div>
         <ProgressBar value={percent} size="md" />
+        {percent === 100 && (
+          <div className="mt-4 flex items-center gap-3">
+            <a
+              href={`/api/certificate/${pathSlug}`}
+              className="inline-flex items-center gap-2 rounded-lg border border-sage/30 bg-sage/10 px-4 py-2 font-mono text-sm font-medium tracking-wide text-sage transition hover:bg-sage/20"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+              Download Certificate
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Start Training CTA */}

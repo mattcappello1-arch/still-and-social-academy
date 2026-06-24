@@ -121,6 +121,7 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
           <SidebarLinkClient href="/readiness" label="Readiness" iconPath={SIDEBAR_ICONS['check-square']} />
           <SidebarLinkClient href="/documents" label="Documents" iconPath={SIDEBAR_ICONS.file} />
           <SidebarLinkClient href="/profile" label="Profile" iconPath={SIDEBAR_ICONS.user} />
+          <SidebarLinkClient href="/team" label="Team" iconPath={SIDEBAR_ICONS.users} />
         </div>
 
         {isAdmin && (
@@ -129,6 +130,7 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
               Admin
             </p>
             <SidebarLinkClient href="/admin" label="Overview" iconPath={SIDEBAR_ICONS.grid} />
+            <SidebarLinkClient href="/admin/analytics" label="Analytics" iconPath={SIDEBAR_ICONS['bar-chart']} />
             <SidebarLinkClient href="/admin/staff" label="Staff" iconPath={SIDEBAR_ICONS.users} />
             <SidebarLinkClient href="/admin/training" label="Training Mgmt" iconPath={SIDEBAR_ICONS.layers} />
             <SidebarLinkClient href="/admin/reviews" label="Reviews" iconPath={SIDEBAR_ICONS.clipboard} />
