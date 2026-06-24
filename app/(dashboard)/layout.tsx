@@ -72,6 +72,11 @@ const SIDEBAR_ICONS: Record<string, string> = {
   layers: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
   files: 'M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9l-7-7z M13 2v7h7',
   pen: 'M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z',
+  trending: 'M23 6l-9.5 9.5-5-5L1 18',
+  clipboard: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+  star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+  heart: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z',
+  'bar-chart': 'M18 20V10M12 20V4M6 20v-6',
 }
 
 function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
@@ -99,6 +104,10 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
           <SidebarLinkClient href="/training" label="Training" iconPath={SIDEBAR_ICONS.book} />
           <SidebarLinkClient href="/documents" label="Documents" iconPath={SIDEBAR_ICONS.file} />
           <SidebarLinkClient href="/profile" label="Profile" iconPath={SIDEBAR_ICONS.user} />
+          <SidebarLinkClient href="/growth" label="Growth" iconPath={SIDEBAR_ICONS.trending} />
+          <SidebarLinkClient href="/reviews" label="Reviews" iconPath={SIDEBAR_ICONS.clipboard} />
+          <SidebarLinkClient href="/certifications" label="Certifications" iconPath={SIDEBAR_ICONS.star} />
+          <SidebarLinkClient href="/wellbeing" label="Wellbeing" iconPath={SIDEBAR_ICONS.heart} />
         </div>
 
         {isAdmin && (
@@ -111,6 +120,11 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
             <SidebarLinkClient href="/admin/training" label="Training Mgmt" iconPath={SIDEBAR_ICONS.layers} />
             <SidebarLinkClient href="/admin/documents" label="Documents" iconPath={SIDEBAR_ICONS.files} />
             <SidebarLinkClient href="/admin/signing" label="Signing" iconPath={SIDEBAR_ICONS.pen} />
+            <SidebarLinkClient href="/admin/reviews" label="Reviews" iconPath={SIDEBAR_ICONS.clipboard} />
+            <SidebarLinkClient href="/admin/certifications" label="Certifications" iconPath={SIDEBAR_ICONS.star} />
+            <SidebarLinkClient href="/admin/wellbeing" label="Wellbeing" iconPath={SIDEBAR_ICONS.heart} />
+            <SidebarLinkClient href="/admin/recognition" label="Recognition" iconPath={SIDEBAR_ICONS.star} />
+            <SidebarLinkClient href="/admin/skills" label="Skills" iconPath={SIDEBAR_ICONS['bar-chart']} />
           </div>
         )}
       </nav>

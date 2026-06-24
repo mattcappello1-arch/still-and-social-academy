@@ -78,6 +78,22 @@ export default async function PassportPage() {
     return s === 'sent' || s === 'viewed'
   }).length
 
+  // Recognition
+  const { data: recognition } = await supabase
+    .from('academy_recognition')
+    .select('id, badge_type, description, created_at')
+    .eq('staff_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(6)
+
+  // Achievements
+  const { data: achievements } = await supabase
+    .from('academy_achievements')
+    .select('id, title, description, created_at')
+    .eq('staff_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(6)
+
   // Recent completions
   const recentCompletions = (progress ?? [])
     .filter((p: any) => p.status === 'completed' && p.completed_at)
@@ -219,7 +235,47 @@ export default async function PassportPage() {
         </div>
       </section>
 
-      {/* Achievements */}
+      {/* Recognition Badges */}
+      {recognition && recognition.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-4 font-serif text-xl font-light text-ink">Recognition</h2>
+          <div className="flex flex-wrap gap-3">
+            {recognition.map((rec: any) => {
+              const icons: Record<string, string> = {
+                'Guest Experience Champion': '\u2b50',
+                'Team Player': '\ud83e\udd1d',
+                'Leadership Potential': '\ud83c\udf1f',
+                'Growth Mindset': '\ud83c\udf31',
+                'Hospitality Excellence': '\ud83c\udfc6',
+                'Above & Beyond': '\ud83d\ude80',
+              }
+              return (
+                <div key={rec.id} className="flex items-center gap-2 rounded-full border border-sienna/20 bg-sienna/5 px-4 py-2">
+                  <span>{icons[rec.badge_type] ?? '\u2b50'}</span>
+                  <span className="font-mono text-xs text-sienna">{rec.badge_type}</span>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Achievement Milestones */}
+      {achievements && achievements.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-4 font-serif text-xl font-light text-ink">Milestones</h2>
+          <div className="flex flex-wrap gap-3">
+            {achievements.map((ach: any) => (
+              <div key={ach.id} className="flex items-center gap-2 rounded-full border border-olive/20 bg-olive/10 px-4 py-2">
+                <span className="text-olive">{'\ud83c\udf96\ufe0f'}</span>
+                <span className="font-mono text-xs text-olive">{ach.title}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Training Path Achievements */}
       {completedPaths > 0 && (
         <section className="mb-8">
           <h2 className="mb-4 font-serif text-xl font-light text-ink">Achievements</h2>
