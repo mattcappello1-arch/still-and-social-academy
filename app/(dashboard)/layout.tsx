@@ -119,6 +119,7 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
         </div>
 
         <SidebarSection label="Learn" defaultOpen>
+          <SidebarLinkClient href="/foundation" label="Foundation" iconPath={SIDEBAR_ICONS.star} />
           <SidebarLinkClient href="/learn" label="Learn Hub" iconPath={SIDEBAR_ICONS.layout} />
           <SidebarLinkClient href="/training" label="Training" iconPath={SIDEBAR_ICONS.book} />
           <SidebarLinkClient href="/handbook" label="Handbook" iconPath={SIDEBAR_ICONS['book-open']} />
