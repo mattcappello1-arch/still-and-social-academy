@@ -14,6 +14,8 @@ export async function saveModule(
     description: string;
     estimatedMinutes: number;
     blocks: unknown[];
+    readAloudEnabled: boolean;
+    audioIntroUrl: string;
   }
 ) {
   "use server";
@@ -25,6 +27,8 @@ export async function saveModule(
       description: data.description || null,
       content: { blocks: data.blocks },
       estimated_minutes: data.estimatedMinutes,
+      read_aloud_enabled: data.readAloudEnabled,
+      audio_intro_url: data.audioIntroUrl || null,
     })
     .eq("id", moduleId);
 
@@ -130,6 +134,8 @@ export default async function EditModulePage({
         title={module.title}
         description={module.description || ""}
         estimatedMinutes={module.estimated_minutes || 3}
+        readAloudEnabled={module.read_aloud_enabled ?? true}
+        audioIntroUrl={module.audio_intro_url || ""}
         saveAction={saveModule}
       />
 

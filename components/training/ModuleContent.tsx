@@ -56,7 +56,9 @@ export function ModuleContent({
   return (
     <div className="space-y-6">
       {blocks.map((block, i) => (
-        <ContentBlockRenderer key={`${moduleId}-${i}`} block={block} />
+        <div key={`${moduleId}-${i}`} data-block-index={i} className="transition-all duration-300">
+          <ContentBlockRenderer block={block} />
+        </div>
       ))}
     </div>
   )

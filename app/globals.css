@@ -45,6 +45,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Read Aloud active highlight */
+.reading-active {
+  border-left: 3px solid var(--sienna);
+  background: rgba(159, 81, 54, 0.03);
+  padding-left: 12px;
+  transition: all 0.3s ease;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--cream-soft); }

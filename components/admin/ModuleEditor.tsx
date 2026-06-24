@@ -116,6 +116,8 @@ export function ModuleEditor({
   title: initialTitle,
   description: initialDescription,
   estimatedMinutes: initialMinutes,
+  readAloudEnabled,
+  audioIntroUrl,
   saveAction,
 }: {
   initialBlocks: Block[]
@@ -124,12 +126,16 @@ export function ModuleEditor({
   title: string
   description: string
   estimatedMinutes: number
-  saveAction: (moduleId: string, data: { title: string; description: string; estimatedMinutes: number; blocks: unknown[] }) => Promise<{ error?: string }>
+  readAloudEnabled?: boolean
+  audioIntroUrl?: string
+  saveAction: (moduleId: string, data: { title: string; description: string; estimatedMinutes: number; blocks: unknown[]; readAloudEnabled: boolean; audioIntroUrl: string }) => Promise<{ error?: string }>
 }) {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks.length > 0 ? initialBlocks : [])
   const [title, setTitle] = useState(initialTitle)
   const [description, setDescription] = useState(initialDescription)
   const [estimatedMinutes, setEstimatedMinutes] = useState(initialMinutes)
+  const [readAloud, setReadAloud] = useState(readAloudEnabled ?? true)
+  const [audioIntro, setAudioIntro] = useState(audioIntroUrl ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(true)
   const [preview, setPreview] = useState(false)
@@ -173,6 +179,8 @@ export function ModuleEditor({
       description,
       estimatedMinutes,
       blocks,
+      readAloudEnabled: readAloud,
+      audioIntroUrl: audioIntro,
     })
     setSaving(false)
     if (!result.error) setSaved(true)
@@ -329,6 +337,38 @@ export function ModuleEditor({
               className="w-24 bg-white border border-rule rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-olive"
             />
           </div>
+
+          <div className="border-t border-rule pt-4">
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="block font-mono text-[10px] tracking-[0.2em] uppercase text-ink-soft">Read Aloud</span>
+                <span className="block font-mono text-[10px] text-ink-soft/70 mt-0.5">Enable text-to-speech player</span>
+              </div>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={readAloud}
+                  onChange={(e) => { setReadAloud(e.target.checked); markUnsaved() }}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-oatmeal/50 rounded-full peer peer-checked:bg-sienna transition-colors" />
+                <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4 shadow-sm" />
+              </div>
+            </label>
+          </div>
+
+          {readAloud && (
+            <div>
+              <label className="block font-mono text-[10px] tracking-[0.2em] uppercase text-ink-soft mb-1.5">Audio Intro URL</label>
+              <input
+                value={audioIntro}
+                onChange={(e) => { setAudioIntro(e.target.value); markUnsaved() }}
+                placeholder="Optional audio intro file..."
+                className="w-full bg-white border border-rule rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-olive"
+              />
+              <p className="mt-1 font-mono text-[9px] text-ink-soft/70">Plays before TTS starts</p>
+            </div>
+          )}
 
           <button
             type="button"

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ModuleContent } from '@/components/training/ModuleContent'
+import { ReadAloudWrapper } from './read-aloud-wrapper'
 import { ModuleActions } from './module-actions'
 
 export default async function ModulePage({
@@ -164,6 +165,17 @@ export default async function ModulePage({
       {/* Content */}
       <div className="mb-8">
         <ModuleContent blocks={contentBlocks as never[]} moduleId={module.id} />
+      </div>
+
+      {/* Read Aloud Player */}
+      <div className="mb-6">
+        <ReadAloudWrapper
+          moduleId={module.id}
+          blocks={contentBlocks as Array<{ type: string; data: Record<string, unknown> }>}
+          readAloudEnabled={module.read_aloud_enabled ?? true}
+          audioIntroUrl={module.audio_intro_url ?? undefined}
+          progressStatus={progress?.status ?? 'not_started'}
+        />
       </div>
 
       {/* Mark as Complete */}
