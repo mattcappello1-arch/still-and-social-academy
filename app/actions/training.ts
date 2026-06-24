@@ -1,6 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { checkAndAwardAchievements } from '@/lib/utils/achievements'
+import { createNotification } from '@/app/actions/notifications'
 
 export async function startModule(moduleId: string) {
   const supabase = await createClient()
@@ -45,6 +47,17 @@ export async function markModuleComplete(moduleId: string) {
     )
 
   if (error) return { error: error.message }
+
+  // Award achievements and notify
+  try {
+    await checkAndAwardAchievements(user.id)
+    // Get module title for notification
+    const { data: mod } = await supabase.from('academy_training_modules').select('title').eq('id', moduleId).single()
+    if (mod) {
+      await createNotification(user.id, 'Module Completed', `You completed "${mod.title}"`, 'training', '/passport')
+    }
+  } catch { /* non-critical */ }
+
   return { success: true }
 }
 

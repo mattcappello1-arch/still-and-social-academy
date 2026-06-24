@@ -51,6 +51,10 @@ export default async function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-4">
+            <form action="/search" method="get" className="hidden sm:block">
+              <input name="q" type="text" placeholder="Search..."
+                className="w-40 rounded-lg border border-rule bg-cream/50 px-3 py-1.5 text-xs text-ink placeholder:text-oatmeal-dk outline-none transition focus:w-56 focus:border-sienna/30" />
+            </form>
             <span className="font-mono text-sm text-ink">{displayName}</span>
             <LogoutButton />
           </div>

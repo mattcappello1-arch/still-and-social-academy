@@ -105,6 +105,43 @@ export default async function PassportPage() {
     return { ...p, module_title: mod?.title ?? 'Module' }
   })
 
+  // Onboarding checklist (for new staff)
+  const { data: personalDetails } = await supabase
+    .from('academy_staff_personal_details')
+    .select('staff_id')
+    .eq('staff_id', user.id)
+    .single()
+
+  const { data: certs } = await supabase
+    .from('academy_certifications')
+    .select('id')
+    .eq('staff_id', user.id)
+    .limit(1)
+
+  const { data: wellbeingCheckin } = await supabase
+    .from('academy_wellbeing_checkins')
+    .select('id')
+    .eq('staff_id', user.id)
+    .limit(1)
+
+  const hasProfile = !!personalDetails
+  const hasStartedWay = pathProgress.some((p: any) => p.slug === 'the-still-and-social-way' && p.completed > 0)
+  const hasCerts = (certs?.length ?? 0) > 0
+  const hasCheckedIn = (wellbeingCheckin?.length ?? 0) > 0
+  const isNewStaff = overallCompleted === 0 && !hasCerts && pendingSigningCount === 0
+
+  const onboardingItems = [
+    { label: 'Complete your profile', done: hasProfile, link: '/profile' },
+    { label: 'Start The Still & Social Way', done: hasStartedWay, link: '/training/the-still-and-social-way' },
+    { label: 'Upload your certifications', done: hasCerts, link: '/certifications' },
+    { label: 'Review the Staff Handbook', done: overallCompleted > 0, link: '/handbook' },
+    { label: 'Complete a wellbeing check-in', done: hasCheckedIn, link: '/wellbeing' },
+  ]
+  const onboardingDone = onboardingItems.filter(i => i.done).length
+  const onboardingTotal = onboardingItems.length
+  const onboardingPct = Math.round((onboardingDone / onboardingTotal) * 100)
+  const showOnboarding = isNewStaff || onboardingDone < onboardingTotal
+
   const role = (staff?.role ?? 'waiter') as Role
   const department = getDepartment(role)
 
@@ -143,6 +180,42 @@ export default async function PassportPage() {
           }`}>
             {staff.status}
           </span>
+        </div>
+      )}
+
+      {/* Onboarding checklist for new staff */}
+      {showOnboarding && onboardingDone < onboardingTotal && (
+        <div className="mb-8 rounded-xl border-2 border-sienna/20 bg-white/60 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-serif text-xl font-light text-ink">Getting Started</h2>
+              <p className="text-xs text-ink-soft mt-0.5">{onboardingDone} of {onboardingTotal} steps complete</p>
+            </div>
+            <span className="font-serif text-2xl font-light text-sienna">{onboardingPct}%</span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-oatmeal/30 mb-4">
+            <div className="h-full rounded-full bg-sienna transition-all" style={{ width: `${onboardingPct}%` }} />
+          </div>
+          <div className="space-y-2">
+            {onboardingItems.map((item, i) => (
+              <Link key={i} href={item.link}
+                className={`flex items-center gap-3 rounded-lg p-3 transition ${item.done ? 'bg-sage/5' : 'bg-cream-soft hover:bg-oatmeal/20'}`}>
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${item.done ? 'bg-sage/20 text-sage' : 'border border-oatmeal text-ink-soft'}`}>
+                  {item.done ? '✓' : i + 1}
+                </span>
+                <span className={`text-sm ${item.done ? 'text-ink-soft line-through' : 'text-ink'}`}>{item.label}</span>
+                {!item.done && <span className="ml-auto text-sienna text-xs">→</span>}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {onboardingDone === onboardingTotal && isNewStaff && (
+        <div className="mb-8 rounded-xl border border-sage/20 bg-sage/5 p-6 text-center">
+          <span className="text-3xl">🎉</span>
+          <h2 className="font-serif text-xl font-light text-ink mt-2">Onboarding Complete</h2>
+          <p className="text-sm text-ink-soft mt-1">You are all set. Welcome to the team.</p>
         </div>
       )}
 
