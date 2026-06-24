@@ -21,7 +21,7 @@ async function inviteStaff(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Create the invitation record
+  // Create the invitation record first
   const { error: inviteError } = await admin
     .from('academy_invitations')
     .insert({
@@ -50,23 +50,39 @@ async function inviteStaff(formData: FormData) {
   })
 
   if (authError) {
+    // Check for rate limit error
+    const isRateLimit = authError.message.toLowerCase().includes('rate limit') ||
+      authError.message.toLowerCase().includes('too many requests') ||
+      authError.status === 429
+
+    if (isRateLimit) {
+      redirect(
+        `/admin/staff/new?error=${encodeURIComponent('Please wait a moment before sending another invitation')}&fallback=true&email=${encodeURIComponent(email)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}`
+      )
+    }
+
+    // For other auth errors, the invitation record was still created
     redirect(
-      `/admin/staff/new?error=${encodeURIComponent(authError.message)}`
+      `/admin/staff/new?error=${encodeURIComponent(authError.message)}&fallback=true&email=${encodeURIComponent(email)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}`
     )
   }
 
   redirect(
-    `/admin/staff?success=${encodeURIComponent(`Invitation sent to ${firstName} ${lastName} (${email})`)}`
+    `/admin/staff/new?success=${encodeURIComponent(`Invitation sent to ${firstName} ${lastName} (${email})`)}`
   )
 }
 
 export default async function NewStaffPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; success?: string; fallback?: string; email?: string; name?: string }>
 }) {
   const params = await searchParams
   const error = params.error
+  const success = params.success
+  const showFallback = params.fallback === 'true'
+  const fallbackEmail = params.email
+  const fallbackName = params.name
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -97,9 +113,28 @@ export default async function NewStaffPage({
         </p>
       </div>
 
+      {success && (
+        <div className="mb-4 rounded-lg border border-sage/30 bg-sage/5 px-4 py-3 font-mono text-sm text-sage">
+          <div className="flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>
+            {success}
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 rounded-lg border border-sienna/20 bg-sienna/5 px-4 py-3 font-mono text-sm text-sienna">
           {error}
+        </div>
+      )}
+
+      {showFallback && (
+        <div className="mb-4 rounded-lg border border-coffee/20 bg-coffee/5 px-4 py-3">
+          <p className="mb-1 font-mono text-sm font-medium text-coffee">Invitation record created</p>
+          <p className="font-mono text-xs text-coffee/80">
+            The email invite could not be sent, but {fallbackName ? `${fallbackName}'s` : 'the'} record has been saved.
+            You can manually share the signup link with {fallbackEmail ? fallbackEmail : 'the staff member'}, or try sending the invite again later.
+          </p>
         </div>
       )}
 

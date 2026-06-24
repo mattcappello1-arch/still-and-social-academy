@@ -94,6 +94,7 @@ export default async function ModulePage({
 
   const isCompleted = progress?.status === 'completed'
   const contentBlocks = (module.content as { blocks?: unknown[] })?.blocks ?? []
+  const totalModules = (allModules ?? []).length
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -102,21 +103,21 @@ export default async function ModulePage({
         <Link href="/training" className="transition hover:text-sienna">
           Training
         </Link>
-        <span className="text-oatmeal">/</span>
+        <span className="text-oatmeal">&rsaquo;</span>
         <Link
           href={`/training/${pathSlug}`}
           className="transition hover:text-sienna"
         >
           {path.title}
         </Link>
-        <span className="text-oatmeal">/</span>
+        <span className="text-oatmeal">&rsaquo;</span>
         <span className="text-ink">{module.title}</span>
       </nav>
 
-      {/* Progress indicator */}
+      {/* Module progress indicator */}
       <div className="mb-4 flex items-center justify-between">
         <p className="font-mono text-xs text-ink-soft">
-          Module {currentIndex + 1} of {(allModules ?? []).length}
+          Module {currentIndex + 1} of {totalModules}
         </p>
         <div className="flex items-center gap-1.5">
           {(allModules ?? []).map((m, i) => (
@@ -142,23 +143,8 @@ export default async function ModulePage({
           </h1>
           {isCompleted && (
             <span className="inline-flex items-center gap-1 rounded-full bg-sage/10 px-2.5 py-0.5 font-mono text-[10px] tracking-wide text-sage uppercase">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
               Completed
-            </span>
-          )}
-          {!!quiz && !isCompleted && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-coffee/10 px-2.5 py-0.5 font-mono text-[10px] tracking-wide text-coffee">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" /></svg>
-              Quiz required
             </span>
           )}
         </div>
@@ -167,14 +153,12 @@ export default async function ModulePage({
             {module.description}
           </p>
         )}
-        <div className="mt-1.5 flex flex-wrap items-center gap-3">
-          {module.estimated_minutes && (
-            <span className="flex items-center gap-1 font-mono text-xs text-ink-soft">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-              {module.estimated_minutes} min
-            </span>
-          )}
-        </div>
+        {module.estimated_minutes && (
+          <p className="mt-1.5 flex items-center gap-1 font-mono text-xs text-ink-soft">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+            {module.estimated_minutes} min
+          </p>
+        )}
       </div>
 
       {/* Content */}
@@ -182,7 +166,7 @@ export default async function ModulePage({
         <ModuleContent blocks={contentBlocks as never[]} moduleId={module.id} />
       </div>
 
-      {/* Actions */}
+      {/* Mark as Complete */}
       <ModuleActions
         moduleId={module.id}
         isCompleted={isCompleted}
@@ -195,7 +179,7 @@ export default async function ModulePage({
         progressStatus={progress?.status ?? 'not_started'}
       />
 
-      {/* Navigation */}
+      {/* Prev / Next navigation */}
       <div className="mt-8 grid grid-cols-2 gap-4 border-t border-rule pt-6">
         {prevModule ? (
           <Link

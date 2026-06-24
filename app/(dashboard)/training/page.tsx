@@ -43,13 +43,13 @@ export default async function TrainingPage() {
     .eq('role', staff.role)
     .order('sort_order')
 
-  // Get all modules for these paths
+  // Get all modules for these paths (including estimated_minutes)
   const pathIds = (rolePaths ?? []).map((rp) => rp.path_id)
   const { data: modules } =
     pathIds.length > 0
       ? await supabase
           .from('academy_training_modules')
-          .select('id, path_id')
+          .select('id, path_id, estimated_minutes')
           .in('path_id', pathIds)
           .eq('is_active', true)
       : { data: [] }
@@ -82,6 +82,8 @@ export default async function TrainingPage() {
     completedCount: number
     inProgressCount: number
     percent: number
+    estimatedMinutesRemaining: number
+    status: 'not_started' | 'in_progress' | 'complete'
   }
 
   const paths: PathData[] = (rolePaths ?? [])
@@ -108,6 +110,18 @@ export default async function TrainingPage() {
           ? Math.round((completedCount / pathModules.length) * 100)
           : 0
 
+      // Calculate remaining minutes (incomplete modules)
+      const estimatedMinutesRemaining = pathModules
+        .filter((m) => progressMap.get(m.id) !== 'completed')
+        .reduce((sum, m) => sum + (m.estimated_minutes ?? 0), 0)
+
+      const status: PathData['status'] =
+        percent === 100
+          ? 'complete'
+          : completedCount > 0 || inProgressCount > 0
+            ? 'in_progress'
+            : 'not_started'
+
       return {
         id: path.id,
         slug: path.slug,
@@ -119,6 +133,8 @@ export default async function TrainingPage() {
         completedCount,
         inProgressCount,
         percent,
+        estimatedMinutesRemaining,
+        status,
       }
     })
 
@@ -129,8 +145,6 @@ export default async function TrainingPage() {
     universal: 'bg-coffee/10 text-coffee border-coffee/20',
   }
 
-  // Group paths by department
-  const departmentOrder = ['universal', 'foh', 'kitchen', 'leadership']
   const departmentLabels: Record<string, string> = {
     universal: 'Universal',
     foh: 'Front of House',
@@ -138,13 +152,11 @@ export default async function TrainingPage() {
     leadership: 'Leadership',
   }
 
-  const groupedPaths = departmentOrder
-    .map((dept) => ({
-      department: dept,
-      label: departmentLabels[dept] ?? dept,
-      paths: paths.filter((p) => p.department === dept),
-    }))
-    .filter((g) => g.paths.length > 0)
+  const statusLabels: Record<string, { text: string; className: string }> = {
+    not_started: { text: 'Not Started', className: 'text-ink-soft bg-cream-soft border-rule' },
+    in_progress: { text: 'In Progress', className: 'text-sienna bg-sienna/5 border-sienna/20' },
+    complete: { text: 'Complete', className: 'text-sage bg-sage/5 border-sage/20' },
+  }
 
   const overallCompleted = paths.reduce((s, p) => s + p.completedCount, 0)
   const overallTotal = paths.reduce((s, p) => s + p.moduleCount, 0)
@@ -153,9 +165,9 @@ export default async function TrainingPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-8">
-        <h1 className="font-serif text-3xl font-light text-ink">Training</h1>
+        <h1 className="font-serif text-3xl font-light text-ink">Learning Pathways</h1>
         <p className="mt-1 font-mono text-sm text-ink-soft">
-          Complete your assigned training paths to build your skills and knowledge. Each path contains modules covering specific topics for your role.
+          Complete your assigned training paths to build your skills and knowledge.
         </p>
       </div>
 
@@ -171,76 +183,65 @@ export default async function TrainingPage() {
       )}
 
       {paths.length > 0 ? (
-        <div className="space-y-8">
-          {groupedPaths.map((group) => (
-            <section key={group.department}>
-              <h2 className="mb-3 flex items-center gap-2 font-serif text-xl font-light text-ink">
-                {group.label}
-                <span className="font-mono text-xs text-ink-soft font-normal">
-                  ({group.paths.length} {group.paths.length === 1 ? 'path' : 'paths'})
-                </span>
-              </h2>
-              <div className="space-y-3">
-                {group.paths.map((path) => (
-                  <Link
-                    key={path.id}
-                    href={`/training/${path.slug}`}
-                    className="group block rounded-xl border border-rule bg-white/60 p-5 transition hover:border-sienna/30 hover:shadow-md hover:-translate-y-[1px]"
-                  >
-                    <div className="mb-3 flex items-start justify-between gap-4">
-                      <div className="flex min-w-0 flex-1 items-start gap-3">
-                        {/* Completion indicator */}
-                        {path.percent === 100 ? (
-                          <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sage/20">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-sage"><path d="M20 6L9 17l-5-5" /></svg>
-                          </div>
-                        ) : (
-                          <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-oatmeal/40">
-                            <div className="h-2 w-2 rounded-full" style={{ background: path.percent > 0 ? 'var(--sienna)' : 'transparent' }} />
-                          </div>
-                        )}
-                        <div>
-                          <div className="mb-1 flex flex-wrap items-center gap-2">
-                            <h3 className="font-serif text-lg font-light text-ink group-hover:text-sienna transition">
-                              {path.title}
-                            </h3>
-                            {path.isRequired && (
-                              <span className="inline-flex rounded-full border border-rosewood/20 bg-rosewood/10 px-2 py-0.5 font-mono text-[10px] tracking-wide text-rosewood uppercase">
-                                Required
-                              </span>
-                            )}
-                          </div>
-                          {path.description && (
-                            <p className="font-mono text-sm text-ink-soft">
-                              {path.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+        <div className="space-y-4">
+          {paths.map((path) => {
+            const deptColor = departmentColors[path.department] ?? departmentColors.universal
+            const status = statusLabels[path.status]
+            return (
+              <Link
+                key={path.id}
+                href={`/training/${path.slug}`}
+                className="group block rounded-xl border border-rule bg-white/60 p-5 transition hover:border-sienna/30 hover:shadow-md hover:-translate-y-[1px]"
+              >
+                {/* Top row: badges */}
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-wide uppercase ${deptColor}`}>
+                    {departmentLabels[path.department] ?? path.department}
+                  </span>
+                  {path.isRequired && (
+                    <span className="inline-flex rounded-full border border-rosewood/20 bg-rosewood/10 px-2 py-0.5 font-mono text-[10px] tracking-wide text-rosewood uppercase">
+                      Required
+                    </span>
+                  )}
+                  <span className={`inline-flex rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-wide uppercase ${status.className}`}>
+                    {status.text}
+                  </span>
+                  {path.percent === 100 && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-sage/30 bg-sage/10 px-2 py-0.5 font-mono text-[10px] tracking-wide text-sage uppercase">
+                      Certified
+                    </span>
+                  )}
+                </div>
 
-                      <div className="shrink-0 text-right">
-                        <p className="font-serif text-2xl font-light text-ink">
-                          {path.percent}%
-                        </p>
-                        <p className="font-mono text-[10px] text-ink-soft">
-                          {path.completedCount}/{path.moduleCount} modules
-                        </p>
-                      </div>
-                    </div>
+                {/* Title + description */}
+                <h3 className="mb-1 font-serif text-xl font-light text-ink group-hover:text-sienna transition">
+                  {path.title}
+                </h3>
+                {path.description && (
+                  <p className="mb-3 font-mono text-sm text-ink-soft line-clamp-2">
+                    {path.description}
+                  </p>
+                )}
 
-                    <ProgressBar value={path.percent} showLabel={false} size="sm" />
+                {/* Progress bar */}
+                <div className="mb-2">
+                  <ProgressBar value={path.percent} showLabel={false} size="sm" />
+                </div>
 
-                    {path.inProgressCount > 0 && (
-                      <p className="mt-2 font-mono text-xs text-sienna">
-                        {path.inProgressCount} module
-                        {path.inProgressCount > 1 ? 's' : ''} in progress
-                      </p>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ))}
+                {/* Stats row */}
+                <div className="flex flex-wrap items-center gap-4 font-mono text-xs text-ink-soft">
+                  <span>{path.completedCount} of {path.moduleCount} modules completed</span>
+                  <span className="font-serif text-lg font-light text-ink">{path.percent}%</span>
+                  {path.estimatedMinutesRemaining > 0 && (
+                    <span className="flex items-center gap-1">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                      Est. {path.estimatedMinutesRemaining} min remaining
+                    </span>
+                  )}
+                </div>
+              </Link>
+            )
+          })}
         </div>
       ) : (
         <EmptyState message="No training paths assigned to your role yet. Check back soon or speak to your manager." />

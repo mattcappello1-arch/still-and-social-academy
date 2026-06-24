@@ -35,7 +35,7 @@
   --color-ink-soft: var(--ink-soft);
   --color-rule: var(--rule);
   --font-serif: var(--font-cormorant);
-  --font-mono: var(--font-source-code-pro);
+  --font-mono: Arial, Helvetica, sans-serif;
 }
 
 body {
