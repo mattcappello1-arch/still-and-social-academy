@@ -1,0 +1,20 @@
+INSERT INTO academy_resources (title, description, category, resource_type, external_url, is_management_only, sort_order) VALUES
+('Guest Experience Standards', 'Our complete guide to delivering exceptional guest experiences at Still and Social.', 'hospitality', 'document', null, false, 1),
+('Sequence of Service Quick Reference', 'A one-page reference card for the 10 steps of service.', 'hospitality', 'pdf', null, false, 2),
+('Wine List Guide', 'Complete guide to our current wine selection with tasting notes and food pairings.', 'food_beverage', 'pdf', null, false, 3),
+('Cocktail Recipe Cards', 'Recipes and specifications for all cocktails on our menu.', 'food_beverage', 'pdf', null, false, 4),
+('Allergen Matrix', 'Complete allergen information for all menu items.', 'food_beverage', 'document', null, false, 5),
+('Leadership Essentials', 'Core principles of leadership at Still and Social.', 'leadership', 'document', null, false, 6),
+('Coaching Conversation Guide', 'Framework for having effective coaching conversations with team members.', 'leadership', 'pdf', null, true, 7),
+('Interview Question Bank', 'Standard interview questions and evaluation criteria for hiring.', 'management', 'document', null, true, 8),
+('Onboarding Checklist Template', 'Template checklist for onboarding new team members.', 'management', 'template', null, true, 9),
+('Mindfulness at Work', 'Simple mindfulness practices you can incorporate into your workday.', 'wellness', 'document', null, false, 10),
+('Stress Management Tips', 'Practical strategies for managing stress in a hospitality environment.', 'wellness', 'document', null, false, 11),
+('Effective Communication Guide', 'How to communicate clearly and effectively with guests and team members.', 'communication', 'document', null, false, 12),
+('Conflict Resolution Framework', 'Step-by-step framework for resolving workplace conflicts.', 'communication', 'pdf', null, true, 13),
+('Brand Guidelines Summary', 'Quick reference for the Still and Social brand voice, values, and visual identity.', 'brand', 'pdf', null, false, 14),
+('Social Media Guidelines', 'Guidelines for representing Still and Social on social media.', 'brand', 'document', null, false, 15),
+('Performance Review Guide', 'How to prepare for and conduct effective performance reviews.', 'management', 'template', null, true, 16),
+('RSA Refresher Notes', 'Key points from Responsible Service of Alcohol training.', 'hospitality', 'document', null, false, 17),
+('Food Safety Quick Reference', 'Essential food safety procedures and temperature guidelines.', 'food_beverage', 'pdf', null, false, 18)
+ON CONFLICT DO NOTHING;

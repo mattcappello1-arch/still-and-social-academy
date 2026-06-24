@@ -6,6 +6,7 @@ const REVIEW_TYPE_LABELS: Record<string, string> = {
   probation_30: '30-Day Probation',
   probation_60: '60-Day Probation',
   probation_90: '90-Day Probation',
+  quick_note: 'Manager Note',
 }
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
@@ -20,7 +21,7 @@ export default async function AdminReviewsPage() {
   // Fetch all staff for the create form
   const { data: allStaff } = await supabase
     .from('academy_staff')
-    .select('id, first_name, last_name')
+    .select('id, first_name, last_name, start_date, status')
     .eq('status', 'active')
     .order('first_name')
 
@@ -30,6 +31,42 @@ export default async function AdminReviewsPage() {
     .select('*, academy_staff!academy_reviews_staff_id_fkey(first_name, last_name)')
     .order('created_at', { ascending: false })
 
+  // Compute probation due staff
+  const now = new Date()
+  const probationStaff = (allStaff ?? [])
+    .filter((s: any) => s.start_date)
+    .map((s: any) => {
+      const startDate = new Date(s.start_date)
+      const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+      const milestones: { day: number; type: string; label: string }[] = []
+
+      if (daysSinceStart <= 100) {
+        // Check which milestones are upcoming or overdue
+        const checkpoints = [
+          { day: 30, type: 'probation_30', label: '30-Day Review' },
+          { day: 60, type: 'probation_60', label: '60-Day Review' },
+          { day: 90, type: 'probation_90', label: '90-Day Review' },
+        ]
+
+        // Check existing reviews for this staff
+        const staffReviews = (reviews ?? []).filter((r: any) => r.staff_id === s.id)
+
+        for (const cp of checkpoints) {
+          const hasReview = staffReviews.some((r: any) => r.review_type === cp.type)
+          if (!hasReview && daysSinceStart >= cp.day - 7) {
+            // Due within 7 days or overdue
+            milestones.push(cp)
+          }
+        }
+      }
+
+      return { ...s, daysSinceStart, milestones }
+    })
+    .filter((s: any) => s.milestones.length > 0)
+
+  // Filter out quick_note from the reviews list
+  const formalReviews = (reviews ?? []).filter((r: any) => r.review_type !== 'quick_note')
+
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-8">
@@ -37,14 +74,51 @@ export default async function AdminReviewsPage() {
         <p className="mt-1 font-mono text-sm text-ink-soft">Create and manage staff performance reviews</p>
       </div>
 
+      {/* Probation Due Section */}
+      {probationStaff.length > 0 && (
+        <div className="mb-8 rounded-xl border border-sienna/30 bg-sienna/5 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sienna">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+            <h2 className="font-mono text-sm font-medium text-sienna uppercase tracking-wider">Probation Reviews Due</h2>
+          </div>
+          <div className="space-y-3">
+            {probationStaff.map((s: any) => (
+              <div key={s.id} className="rounded-lg border border-rule bg-white/80 p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-mono text-sm font-medium text-ink">{s.first_name} {s.last_name}</p>
+                  <p className="font-mono text-xs text-ink-soft">
+                    Day {s.daysSinceStart} — Started {new Date(s.start_date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {s.milestones.map((m: any) => (
+                    <span
+                      key={m.type}
+                      className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] tracking-wider ${
+                        s.daysSinceStart > m.day ? 'bg-rosewood/10 text-rosewood' : 'bg-sienna/10 text-sienna'
+                      }`}
+                    >
+                      {s.daysSinceStart > m.day ? `${m.label} Overdue` : `${m.label} Due`}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
-        <CreateReviewForm staffList={allStaff ?? []} />
+        <CreateReviewForm staffList={(allStaff ?? []).map((s: any) => ({ id: s.id, first_name: s.first_name, last_name: s.last_name }))} />
       </div>
 
       {/* Reviews list */}
-      {reviews && reviews.length > 0 ? (
+      {formalReviews.length > 0 ? (
         <div className="space-y-4">
-          {reviews.map((review: any) => {
+          {formalReviews.map((review: any) => {
             const staffName = review.academy_staff
               ? `${review.academy_staff.first_name} ${review.academy_staff.last_name}`
               : 'Unknown'

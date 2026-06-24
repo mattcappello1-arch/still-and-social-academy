@@ -27,6 +27,8 @@ type Block =
   | { type: 'reveal'; data: { sections: { title: string; content: string }[] } }
   | { type: 'highlight'; data: { text: string; definitions: Record<string, string> } }
   | { type: 'comparison'; data: { before: { label: string; text: string }; after: { label: string; text: string } } }
+  // Welcome video
+  | { type: 'welcome_video'; data: { url: string; title: string; subtitle?: string } }
   // Legacy compat
   | { type: 'pdf'; data: { url?: string; src?: string; title?: string } }
 
@@ -104,6 +106,9 @@ function ContentBlockRenderer({ block }: { block: Block }) {
 
     case 'video':
       return <VideoBlock url={block.data.url} provider={block.data.provider} />
+
+    case 'welcome_video':
+      return <WelcomeVideoBlock url={block.data.url} title={block.data.title} subtitle={block.data.subtitle} />
 
     case 'tip':
       return (
@@ -284,6 +289,42 @@ function VideoBlock({ url, provider }: { url: string; provider?: string }) {
           <video src={url} controls className="h-full w-full">
             <track kind="captions" />
           </video>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function WelcomeVideoBlock({ url, title, subtitle }: { url: string; title: string; subtitle?: string }) {
+  const provider = detectVideoProvider(url)
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-rule bg-charcoal">
+      <div className="aspect-video">
+        {provider === 'youtube' ? (
+          <iframe
+            src={toYouTubeEmbed(url)}
+            className="h-full w-full"
+            allowFullScreen
+            title={title}
+          />
+        ) : provider === 'vimeo' ? (
+          <iframe
+            src={toVimeoEmbed(url)}
+            className="h-full w-full"
+            allowFullScreen
+            title={title}
+          />
+        ) : (
+          <video src={url} controls className="h-full w-full">
+            <track kind="captions" />
+          </video>
+        )}
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-charcoal/90 to-transparent px-6 py-6 pointer-events-none">
+        <h2 className="font-serif text-2xl font-light text-cream">{title}</h2>
+        {subtitle && (
+          <p className="mt-1 font-mono text-sm text-cream/70">{subtitle}</p>
         )}
       </div>
     </div>

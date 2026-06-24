@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AddGoalForm, GoalCard, SkillCheckboxes } from './components'
+import { getRecommendations } from '@/lib/utils/recommendations'
 
 const SKILL_NAMES: Record<string, string> = {
   foh_service: 'Front of House Service',
@@ -54,6 +55,27 @@ export default async function GrowthPage() {
 
   const skillMap = new Map((skillLevels ?? []).map((s: any) => [s.skill_name, s.level]))
 
+  // Compute training recommendations
+  const allGoals = (goals ?? []).map((g: any) => ({
+    title: g.title,
+    description: g.description,
+    category: g.category,
+  }))
+  // Derive selected skill names from skill levels that have level > 0
+  const selectedSkillNames = (skillLevels ?? [])
+    .filter((s: any) => s.level > 0)
+    .map((s: any) => SKILL_NAMES[s.skill_name] || s.skill_name)
+
+  const recommendations = getRecommendations(allGoals, selectedSkillNames)
+
+  // Check which training paths actually exist
+  const { data: trainingPaths } = await supabase
+    .from('academy_training_paths')
+    .select('slug, title')
+    .eq('is_active', true)
+
+  const existingPathSlugs = new Set((trainingPaths ?? []).map((p: any) => p.slug))
+
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-8">
@@ -101,6 +123,50 @@ export default async function GrowthPage() {
           <SkillCheckboxes selectedSkills={[]} />
         </div>
       </section>
+
+      {/* Recommended Training */}
+      {recommendations.length > 0 && (
+        <section className="mb-10">
+          <div className="rounded-xl border border-sienna/20 bg-sienna/5 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sienna">
+                <path d="M12 2a7 7 0 017 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 01-2 2h-4a2 2 0 01-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 017-7z" />
+                <path d="M10 21h4" />
+              </svg>
+              <h2 className="font-serif text-xl font-light text-ink">Recommended Training</h2>
+            </div>
+            <p className="font-mono text-xs text-ink-soft mb-4">
+              Based on your goals and skill interests, we recommend these training paths:
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {recommendations.map((rec) => {
+                const exists = existingPathSlugs.has(rec.slug)
+                return (
+                  <div key={rec.slug} className="rounded-xl border border-rule bg-white/80 p-4">
+                    <p className="font-mono text-sm font-medium text-ink mb-1">{rec.title}</p>
+                    <p className="font-mono text-[10px] text-ink-soft mb-3">{rec.reason}</p>
+                    {exists ? (
+                      <a
+                        href={`/training/${rec.slug}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-sienna/10 px-3 py-1.5 font-mono text-xs text-sienna transition hover:bg-sienna/20"
+                      >
+                        Start Training
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-oatmeal/10 px-3 py-1.5 font-mono text-xs text-ink-soft">
+                        Coming Soon
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Still & Social Goals */}
       <section className="mb-10">

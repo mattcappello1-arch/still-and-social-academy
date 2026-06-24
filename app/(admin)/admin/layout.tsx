@@ -86,13 +86,17 @@ function AdminSidebarContent() {
           <AdminSidebarLinkClient href="/admin" label="Overview" />
           <AdminSidebarLinkClient href="/admin/staff" label="Staff" />
           <AdminSidebarLinkClient href="/admin/training" label="Training Mgmt" />
-          <AdminSidebarLinkClient href="/admin/documents" label="Documents" />
-          <AdminSidebarLinkClient href="/admin/signing" label="Signing" />
           <AdminSidebarLinkClient href="/admin/reviews" label="Reviews" />
           <AdminSidebarLinkClient href="/admin/certifications" label="Certifications" />
           <AdminSidebarLinkClient href="/admin/wellbeing" label="Wellbeing" />
           <AdminSidebarLinkClient href="/admin/recognition" label="Recognition" />
           <AdminSidebarLinkClient href="/admin/skills" label="Skills" />
+          <AdminSidebarLinkClient href="/admin/documents" label="Documents" />
+          <AdminSidebarLinkClient href="/admin/signing" label="Signing" />
+          <AdminSidebarLinkClient href="/admin/handbook" label="Handbook" />
+          <AdminSidebarLinkClient href="/admin/resources" label="Resources" />
+          <AdminSidebarLinkClient href="/admin/readiness" label="Readiness" />
+          <AdminSidebarLinkClient href="/admin/talent" label="Talent" />
         </div>
 
         <div>

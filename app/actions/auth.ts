@@ -28,6 +28,29 @@ export async function logout() {
   redirect('/login')
 }
 
+export async function resetStaffPassword(staffId: string, newPassword: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  // Verify caller is admin
+  const admin = await createAdminClient()
+  const { data: callerStaff } = await admin
+    .from('academy_staff')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single()
+
+  if (!callerStaff?.is_admin) return { error: 'Not authorized' }
+
+  const { error } = await admin.auth.admin.updateUserById(staffId, {
+    password: newPassword,
+  })
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
 export async function acceptInvite(formData: FormData) {
   const password = formData.get('password') as string
   const invitationId = formData.get('invitation_id') as string

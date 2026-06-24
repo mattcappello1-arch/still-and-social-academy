@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 export default async function AdminDashboard() {
   const supabase = await createClient()
 
-  // Fetch staff counts by status
+  // Staff counts
   const { count: totalStaff } = await supabase
     .from('academy_staff')
     .select('*', { count: 'exact', head: true })
@@ -23,221 +23,297 @@ export default async function AdminDashboard() {
     .select('*', { count: 'exact', head: true })
     .eq('status', 'inactive')
 
-  // Fetch training module progress overview
+  // Training completion
   const { data: allProgress } = await supabase
     .from('academy_staff_module_progress')
     .select('status')
 
   const totalProgress = allProgress?.length ?? 0
-  const completedProgress =
-    allProgress?.filter((p) => p.status === 'completed').length ?? 0
-  const completionRate =
-    totalProgress > 0
-      ? Math.round((completedProgress / totalProgress) * 100)
-      : 0
+  const completedProgress = allProgress?.filter((p) => p.status === 'completed').length ?? 0
+  const completionRate = totalProgress > 0 ? Math.round((completedProgress / totalProgress) * 100) : 0
 
-  // Fetch pending invitations
-  const { count: pendingInvites } = await supabase
-    .from('academy_invitations')
-    .select('*', { count: 'exact', head: true })
-    .is('accepted_at', null)
+  // Probation due
+  const { data: activeStaffList } = await supabase
+    .from('academy_staff')
+    .select('id, first_name, last_name, start_date')
+    .eq('status', 'active')
 
-  // Fetch recent staff
+  const now = new Date()
+  const probationDue = (activeStaffList ?? [])
+    .filter((s: any) => s.start_date)
+    .map((s: any) => {
+      const days = Math.floor((now.getTime() - new Date(s.start_date).getTime()) / (1000 * 60 * 60 * 24))
+      return { ...s, days }
+    })
+    .filter((s: any) => s.days <= 100 && s.days >= 23) // within probation window
+
+  // Existing reviews to check which probation milestones are done
+  const probationStaffIds = probationDue.map((s: any) => s.id)
+  const { data: existingReviews } = await supabase
+    .from('academy_reviews')
+    .select('staff_id, review_type')
+    .in('staff_id', probationStaffIds.length ? probationStaffIds : ['none'])
+
+  const reviewSet = new Set((existingReviews ?? []).map((r: any) => `${r.staff_id}:${r.review_type}`))
+
+  const probationAlerts = probationDue
+    .map((s: any) => {
+      const milestones: string[] = []
+      if (s.days >= 23 && !reviewSet.has(`${s.id}:probation_30`)) milestones.push('30-day')
+      if (s.days >= 53 && !reviewSet.has(`${s.id}:probation_60`)) milestones.push('60-day')
+      if (s.days >= 83 && !reviewSet.has(`${s.id}:probation_90`)) milestones.push('90-day')
+      return { ...s, milestones }
+    })
+    .filter((s: any) => s.milestones.length > 0)
+
+  // Expiring certifications (next 30 days)
+  const thirtyDaysFromNow = new Date()
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+  const { data: expiringCerts } = await supabase
+    .from('academy_certifications')
+    .select('*, academy_staff!academy_certifications_staff_id_fkey(first_name, last_name)')
+    .lte('expiry_date', thirtyDaysFromNow.toISOString())
+    .gte('expiry_date', new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString())
+    .order('expiry_date')
+
+  // Wellbeing alerts (rating 1 or 2, recent)
+  const { data: wellbeingAlerts } = await supabase
+    .from('academy_wellbeing_checkins')
+    .select('*, academy_staff!academy_wellbeing_checkins_staff_id_fkey(first_name, last_name)')
+    .lte('rating', 2)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  // Recent activity (recent staff + completed modules)
   const { data: recentStaff } = await supabase
     .from('academy_staff')
     .select('first_name, last_name, role, status, created_at')
     .order('created_at', { ascending: false })
     .limit(5)
 
+  const { data: recentCompletions } = await supabase
+    .from('academy_staff_module_progress')
+    .select('completed_at, academy_staff!academy_staff_module_progress_staff_id_fkey(first_name, last_name), academy_training_modules!academy_staff_module_progress_module_id_fkey(title)')
+    .eq('status', 'completed')
+    .not('completed_at', 'is', null)
+    .order('completed_at', { ascending: false })
+    .limit(5)
+
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-serif text-3xl font-light text-ink">
-            Admin Overview
-          </h1>
-          <p className="mt-1 font-mono text-sm text-ink-soft">
-            Staff and training management at a glance
-          </p>
+          <h1 className="font-serif text-3xl font-light text-ink">Admin Overview</h1>
+          <p className="mt-1 font-mono text-sm text-ink-soft">Staff and training management at a glance</p>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="mb-8 flex flex-wrap gap-3">
-        <a
-          href="/admin/staff/new"
-          className="flex items-center gap-2 rounded-lg bg-charcoal px-4 py-2.5 font-mono text-sm font-medium tracking-wide text-cream transition hover:bg-sienna active:scale-[0.98]"
-        >
+        <a href="/admin/staff/new" className="flex items-center gap-2 rounded-lg bg-charcoal px-4 py-2.5 font-mono text-sm font-medium tracking-wide text-cream transition hover:bg-sienna active:scale-[0.98]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6M23 11h-6" /></svg>
           Invite Staff
         </a>
-        <a
-          href="/admin/signing"
-          className="flex items-center gap-2 rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm tracking-wide text-ink transition hover:border-sienna/30 hover:text-sienna"
-        >
+        <a href="/admin/reviews" className="flex items-center gap-2 rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm tracking-wide text-ink transition hover:border-sienna/30 hover:text-sienna">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+          Create Review
+        </a>
+        <a href="/admin/signing" className="flex items-center gap-2 rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm tracking-wide text-ink transition hover:border-sienna/30 hover:text-sienna">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6" /></svg>
           Assign Document
         </a>
-        <a
-          href="/admin/training"
-          className="flex items-center gap-2 rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm tracking-wide text-ink transition hover:border-sienna/30 hover:text-sienna"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5" /></svg>
-          View Training
-        </a>
-        <a
-          href="/admin/staff"
-          className="flex items-center gap-2 rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm tracking-wide text-ink transition hover:border-sienna/30 hover:text-sienna"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 3a4 4 0 100 8 4 4 0 000-8 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75" /></svg>
-          View All Staff
+        <a href="/admin/recognition" className="flex items-center gap-2 rounded-lg border border-rule bg-white/60 px-4 py-2.5 font-mono text-sm tracking-wide text-ink transition hover:border-sienna/30 hover:text-sienna">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+          Award Recognition
         </a>
       </div>
 
-      {/* Stats grid */}
+      {/* Staff Overview */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <AdminStatCard
-          label="Total Staff"
-          value={String(totalStaff ?? 0)}
-          icon="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 3a4 4 0 100 8 4 4 0 000-8 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75"
-        />
-        <AdminStatCard
-          label="Active"
-          value={String(activeStaff ?? 0)}
-          accent="sage"
-          icon="M20 6L9 17l-5-5"
-        />
-        <AdminStatCard
-          label="Pending"
-          value={String(pendingStaff ?? 0)}
-          accent="oatmeal-dk"
-          icon="M12 8v4M12 16h.01"
-        />
-        <AdminStatCard
-          label="Inactive"
-          value={String(inactiveStaff ?? 0)}
-          accent="ink-soft"
-          icon="M18.36 5.64l-12.72 12.72M5.64 5.64l12.72 12.72"
-        />
+        <AdminStatCard label="Total Staff" value={String(totalStaff ?? 0)} icon="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 3a4 4 0 100 8 4 4 0 000-8 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75" />
+        <AdminStatCard label="Active" value={String(activeStaff ?? 0)} accent="sage" icon="M20 6L9 17l-5-5" />
+        <AdminStatCard label="Pending" value={String(pendingStaff ?? 0)} accent="oatmeal-dk" icon="M12 8v4M12 16h.01" />
+        <AdminStatCard label="Inactive" value={String(inactiveStaff ?? 0)} accent="ink-soft" icon="M18.36 5.64l-12.72 12.72M5.64 5.64l12.72 12.72" />
       </div>
 
-      {/* Training + Invitations row */}
+      {/* Training Progress */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-rule bg-white/60 p-5">
-          <p className="mb-1 font-mono text-[10px] tracking-widest text-ink-soft uppercase">
-            Training Completion
-          </p>
-          <p className="font-serif text-3xl font-light text-ink">
-            {completionRate}%
-          </p>
+          <p className="mb-1 font-mono text-[10px] tracking-widest text-ink-soft uppercase">Training Completion</p>
+          <p className="font-serif text-3xl font-light text-ink">{completionRate}%</p>
           <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-oatmeal/30">
-            <div
-              className="h-full rounded-full bg-sienna transition-all"
-              style={{ width: `${completionRate}%` }}
-            />
+            <div className="h-full rounded-full bg-sienna transition-all" style={{ width: `${completionRate}%` }} />
           </div>
           <p className="mt-2 font-mono text-xs text-ink-soft">
-            {completedProgress} of {totalProgress} modules completed across all
-            staff
+            {completedProgress} of {totalProgress} modules completed across all staff
           </p>
         </div>
 
         <div className="rounded-xl border border-rule bg-white/60 p-5">
-          <p className="mb-1 font-mono text-[10px] tracking-widest text-ink-soft uppercase">
-            Pending Invitations
-          </p>
-          <p className="font-serif text-3xl font-light text-ink">
-            {pendingInvites ?? 0}
-          </p>
-          <p className="mt-2 font-mono text-xs text-ink-soft">
-            {pendingInvites && pendingInvites > 0
-              ? 'Awaiting staff to accept'
-              : 'No pending invitations'}
-          </p>
+          <p className="mb-1 font-mono text-[10px] tracking-widest text-ink-soft uppercase">Quick Stats</p>
+          <div className="space-y-2 mt-3">
+            <div className="flex justify-between items-center">
+              <span className="font-mono text-xs text-ink-soft">Expiring Certifications</span>
+              <span className={`font-mono text-sm font-medium ${(expiringCerts?.length ?? 0) > 0 ? 'text-sienna' : 'text-sage-deep'}`}>
+                {expiringCerts?.length ?? 0}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-mono text-xs text-ink-soft">Probation Reviews Due</span>
+              <span className={`font-mono text-sm font-medium ${probationAlerts.length > 0 ? 'text-sienna' : 'text-sage-deep'}`}>
+                {probationAlerts.length}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-mono text-xs text-ink-soft">Wellbeing Alerts</span>
+              <span className={`font-mono text-sm font-medium ${(wellbeingAlerts?.length ?? 0) > 0 ? 'text-rosewood' : 'text-sage-deep'}`}>
+                {wellbeingAlerts?.length ?? 0}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Recent staff */}
+      {/* Probation Due */}
+      {probationAlerts.length > 0 && (
+        <div className="mb-8 rounded-xl border border-sienna/30 bg-sienna/5 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sienna">
+              <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+            </svg>
+            <h2 className="font-mono text-xs font-medium text-sienna uppercase tracking-wider">Probation Reviews Due</h2>
+          </div>
+          <div className="space-y-2">
+            {probationAlerts.map((s: any) => (
+              <div key={s.id} className="flex items-center justify-between rounded-lg border border-rule bg-white/80 px-4 py-3">
+                <div>
+                  <a href={`/admin/staff/${s.id}`} className="font-mono text-sm font-medium text-ink hover:text-sienna transition">
+                    {s.first_name} {s.last_name}
+                  </a>
+                  <span className="font-mono text-xs text-ink-soft ml-2">Day {s.days}</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {s.milestones.map((m: string) => (
+                    <span key={m} className="rounded-full px-2 py-0.5 font-mono text-[10px] tracking-wider bg-sienna/10 text-sienna">
+                      {m} due
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Expiring Certifications */}
+      {(expiringCerts?.length ?? 0) > 0 && (
+        <div className="mb-8 rounded-xl border border-rule bg-white/60 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sienna">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <h2 className="font-mono text-xs font-medium text-ink-soft uppercase tracking-wider">Expiring Certifications</h2>
+            </div>
+            <a href="/admin/certifications?status=expiring" className="font-mono text-xs text-sienna hover:underline">View all</a>
+          </div>
+          <div className="space-y-2">
+            {expiringCerts!.slice(0, 5).map((cert: any) => {
+              const staffName = cert.academy_staff ? `${cert.academy_staff.first_name} ${cert.academy_staff.last_name}` : 'Unknown'
+              const isExpired = new Date(cert.expiry_date) < now
+              return (
+                <div key={cert.id} className="flex items-center justify-between rounded-lg border border-rule/50 px-4 py-2">
+                  <span className="font-mono text-sm text-ink">{staffName} — {cert.cert_type}</span>
+                  <span className={`font-mono text-xs ${isExpired ? 'text-rosewood' : 'text-sienna'}`}>
+                    {isExpired ? 'Expired' : `Expires ${new Date(cert.expiry_date).toLocaleDateString('en-AU')}`}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Wellbeing Alerts */}
+      {(wellbeingAlerts?.length ?? 0) > 0 && (
+        <div className="mb-8 rounded-xl border border-rosewood/20 bg-rosewood/5 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-rosewood">
+                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z" />
+              </svg>
+              <h2 className="font-mono text-xs font-medium text-rosewood uppercase tracking-wider">Wellbeing Alerts</h2>
+            </div>
+            <a href="/admin/wellbeing" className="font-mono text-xs text-rosewood hover:underline">View all</a>
+          </div>
+          <div className="space-y-2">
+            {wellbeingAlerts!.map((ci: any) => {
+              const staffName = ci.academy_staff ? `${ci.academy_staff.first_name} ${ci.academy_staff.last_name}` : 'Unknown'
+              return (
+                <div key={ci.id} className="flex items-center justify-between rounded-lg border border-rosewood/10 bg-white/80 px-4 py-3">
+                  <div>
+                    <span className="font-mono text-sm text-ink font-medium">{staffName}</span>
+                    <span className="font-mono text-xs text-ink-soft ml-2">
+                      {new Date(ci.created_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                    </span>
+                    {ci.notes && <p className="font-mono text-xs text-ink-soft mt-1 line-clamp-1">{ci.notes}</p>}
+                  </div>
+                  <span className="rounded-full bg-rosewood/10 px-2.5 py-0.5 font-mono text-xs text-rosewood font-medium">
+                    {ci.rating}/5
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Activity */}
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-serif text-xl font-light text-ink">
-            Recent Staff
-          </h2>
-          <a href="/admin/staff" className="font-mono text-xs text-ink-soft transition hover:text-sienna">
-            View all &rarr;
-          </a>
+          <h2 className="font-serif text-xl font-light text-ink">Recent Activity</h2>
         </div>
-        {recentStaff && recentStaff.length > 0 ? (
-          <div className="overflow-hidden rounded-xl border border-rule bg-white/60">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-rule">
-                  <th className="px-4 py-3 text-left font-mono text-[10px] tracking-widest text-ink-soft uppercase">
-                    Name
-                  </th>
-                  <th className="px-4 py-3 text-left font-mono text-[10px] tracking-widest text-ink-soft uppercase">
-                    Role
-                  </th>
-                  <th className="px-4 py-3 text-left font-mono text-[10px] tracking-widest text-ink-soft uppercase">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left font-mono text-[10px] tracking-widest text-ink-soft uppercase">
-                    Joined
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentStaff.map(
-                  (
-                    s: {
-                      first_name: string
-                      last_name: string
-                      role: string
-                      status: string
-                      created_at: string
-                    },
-                    i: number
-                  ) => (
-                    <tr
-                      key={i}
-                      className="border-b border-rule transition last:border-b-0 hover:bg-cream-soft/30"
-                    >
-                      <td className="px-4 py-3 font-mono text-sm font-medium text-ink">
-                        {s.first_name} {s.last_name}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-sm text-ink-soft capitalize">
-                        {s.role.replace(/_/g, ' ')}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={s.status} />
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-ink-soft">
-                        {new Date(s.created_at).toLocaleDateString('en-AU', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
-                      </td>
-                    </tr>
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-oatmeal bg-cream-soft/50 px-6 py-8 text-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-3 text-oatmeal-dk"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 3a4 4 0 100 8 4 4 0 000-8 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75" /></svg>
-            <p className="font-mono text-sm text-ink-soft">
-              No staff members yet. Invite your first team member to get
-              started.
-            </p>
-            <a
-              href="/admin/staff/new"
-              className="mt-4 inline-block rounded-lg bg-charcoal px-4 py-2 font-mono text-xs font-medium tracking-wide text-cream transition hover:bg-sienna"
-            >
-              Invite Staff
-            </a>
-          </div>
-        )}
+        <div className="space-y-2">
+          {(recentStaff ?? []).map((s: any, i: number) => (
+            <div key={`staff-${i}`} className="flex items-center justify-between rounded-lg border border-rule bg-white/60 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sienna/10 text-sienna">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6M23 11h-6" /></svg>
+                </div>
+                <div>
+                  <p className="font-mono text-sm text-ink">{s.first_name} {s.last_name} joined</p>
+                  <p className="font-mono text-[10px] text-ink-soft capitalize">{s.role.replace(/_/g, ' ')}</p>
+                </div>
+              </div>
+              <span className="font-mono text-xs text-ink-soft">
+                {new Date(s.created_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+              </span>
+            </div>
+          ))}
+          {(recentCompletions ?? []).map((c: any, i: number) => (
+            <div key={`comp-${i}`} className="flex items-center justify-between rounded-lg border border-rule bg-white/60 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sage/10 text-sage">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>
+                </div>
+                <div>
+                  <p className="font-mono text-sm text-ink">
+                    {c.academy_staff?.first_name} {c.academy_staff?.last_name} completed
+                  </p>
+                  <p className="font-mono text-[10px] text-ink-soft">{c.academy_training_modules?.title}</p>
+                </div>
+              </div>
+              <span className="font-mono text-xs text-ink-soft">
+                {c.completed_at ? new Date(c.completed_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : ''}
+              </span>
+            </div>
+          ))}
+          {!(recentStaff?.length) && !(recentCompletions?.length) && (
+            <div className="rounded-xl border border-dashed border-oatmeal bg-cream-soft/50 px-6 py-8 text-center">
+              <p className="font-mono text-sm text-ink-soft">No recent activity.</p>
+            </div>
+          )}
+        </div>
       </section>
     </div>
   )
@@ -257,34 +333,14 @@ function AdminStatCard({
   return (
     <div className="rounded-xl border border-rule bg-white/60 p-5">
       <div className="mb-2 flex items-center justify-between">
-        <p className="font-mono text-[10px] tracking-widest text-ink-soft uppercase">
-          {label}
-        </p>
+        <p className="font-mono text-[10px] tracking-widest text-ink-soft uppercase">{label}</p>
         {icon && (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-oatmeal-dk"><path d={icon} /></svg>
         )}
       </div>
-      <p
-        className={`font-serif text-3xl font-light ${accent ? `text-${accent}` : 'text-ink'}`}
-      >
+      <p className={`font-serif text-3xl font-light ${accent ? `text-${accent}` : 'text-ink'}`}>
         {value}
       </p>
     </div>
-  )
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    active: 'border-sage/20 bg-sage/10 text-sage',
-    pending: 'border-oatmeal-dk/30 bg-oatmeal/20 text-oatmeal-dk',
-    inactive: 'border-rule bg-cream-soft text-ink-soft',
-  }
-
-  return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-0.5 font-mono text-[10px] tracking-wide uppercase ${styles[status] ?? styles.inactive}`}
-    >
-      {status}
-    </span>
   )
 }

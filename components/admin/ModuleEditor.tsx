@@ -7,7 +7,7 @@ import { useState, useRef, useCallback } from 'react'
    ──────────────────────────────────────────── */
 
 type BlockType =
-  | 'text' | 'heading' | 'image' | 'video' | 'tip' | 'quote'
+  | 'text' | 'heading' | 'image' | 'video' | 'welcome_video' | 'tip' | 'quote'
   | 'steps' | 'checklist' | 'divider' | 'callout' | 'accordion'
   | 'scenario' | 'flipcards' | 'hotspot' | 'timeline'
   | 'matching' | 'reveal' | 'highlight' | 'comparison'
@@ -42,6 +42,8 @@ interface BlockData {
   // Comparison
   before?: { label: string; text: string }
   after?: { label: string; text: string }
+  // Welcome video
+  subtitle?: string
 }
 
 interface Block {
@@ -59,6 +61,7 @@ const BLOCK_TYPES: { type: BlockType; label: string; icon: string; desc: string;
   { type: 'heading', label: 'Heading', icon: 'H', desc: 'Section heading', category: 'content' },
   { type: 'image', label: 'Image', icon: '\u{1f5bc}', desc: 'Image with caption', category: 'content' },
   { type: 'video', label: 'Video', icon: '\u25b6', desc: 'YouTube/Vimeo/direct', category: 'content' },
+  { type: 'welcome_video', label: 'Welcome Video', icon: '\u25b6\u25b6', desc: 'Full-width hero video', category: 'content' },
   { type: 'tip', label: 'Tip', icon: '\u{1f4a1}', desc: 'Highlighted tip', category: 'content' },
   { type: 'quote', label: 'Quote', icon: '\u275d', desc: 'Styled pullquote', category: 'content' },
   { type: 'steps', label: 'Steps', icon: '\u2460', desc: 'Step-by-step guide', category: 'content' },
@@ -83,6 +86,7 @@ function createEmptyBlock(type: BlockType): Block {
     case 'heading': return { type, data: { text: '', level: 3 } }
     case 'image': return { type, data: { url: '', alt: '', caption: '' } }
     case 'video': return { type, data: { url: '' } }
+    case 'welcome_video': return { type, data: { url: '', title: '', subtitle: '' } }
     case 'tip': return { type, data: { text: '', title: '' } }
     case 'quote': return { type, data: { text: '', attribution: '' } }
     case 'steps': return { type, data: { items: [{ title: '', description: '' }] } }
@@ -551,6 +555,30 @@ function BlockEditor({
           placeholder="YouTube, Vimeo or direct video URL..."
           className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-olive"
         />
+      )
+
+    case 'welcome_video':
+      return (
+        <div className="space-y-2">
+          <input
+            value={block.data.url ?? ''}
+            onChange={(e) => update({ url: e.target.value })}
+            placeholder="Video URL (YouTube, Vimeo, or direct)..."
+            className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-olive"
+          />
+          <input
+            value={block.data.title ?? ''}
+            onChange={(e) => update({ title: e.target.value })}
+            placeholder="Title overlay..."
+            className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-2 text-sm font-serif focus:outline-none focus:border-olive"
+          />
+          <input
+            value={(block.data as any).subtitle ?? ''}
+            onChange={(e) => update({ subtitle: e.target.value } as any)}
+            placeholder="Subtitle (optional)..."
+            className="w-full bg-cream-soft/30 border border-rule rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-olive"
+          />
+        </div>
       )
 
     case 'tip':
@@ -1395,6 +1423,14 @@ function PreviewBlock({ block }: { block: Block }) {
               <p className="font-mono text-sm font-medium text-ink">{'\u25b8'} {item.title}</p>
             </div>
           ))}
+        </div>
+      )
+    case 'welcome_video':
+      return (
+        <div className="rounded-xl border border-rule bg-charcoal/5 p-4">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-sienna uppercase mb-1">Welcome Video</p>
+          <p className="font-serif text-base text-ink">{block.data.title || 'Untitled'}</p>
+          {(block.data as any).subtitle && <p className="font-mono text-xs text-ink-soft">{(block.data as any).subtitle}</p>}
         </div>
       )
     // Preview for interactive blocks
