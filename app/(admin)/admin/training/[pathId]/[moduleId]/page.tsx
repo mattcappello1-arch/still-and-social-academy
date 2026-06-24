@@ -7,7 +7,7 @@ import { ModuleEditor } from "@/components/admin/ModuleEditor";
    Server actions
    ──────────────────────────────────────────── */
 
-async function saveModule(
+export async function saveModule(
   moduleId: string,
   data: {
     title: string;
