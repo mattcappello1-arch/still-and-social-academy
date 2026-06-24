@@ -46,7 +46,7 @@ export default async function TrainingPathPage({
     moduleIds.length > 0
       ? await supabase
           .from('academy_staff_module_progress')
-          .select('module_id, status, completed_at')
+          .select('module_id, status, completed_at, manager_signoff_at')
           .eq('staff_id', user.id)
           .in('module_id', moduleIds)
       : { data: [] }
@@ -249,6 +249,16 @@ export default async function TrainingPathPage({
                     >
                       {status.replace('_', ' ')}
                     </span>
+                    {status === 'completed' && prog?.manager_signoff_at ? (
+                      <span className="flex items-center gap-1 rounded-full bg-sage/10 px-2 py-0.5 font-mono text-[10px] text-sage">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
+                        Signed off
+                      </span>
+                    ) : status === 'completed' ? (
+                      <span className="font-mono text-[10px] text-ink-soft">
+                        Awaiting sign-off
+                      </span>
+                    ) : null}
                   </div>
                 </Link>
               </div>

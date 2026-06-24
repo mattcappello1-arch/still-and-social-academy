@@ -80,7 +80,7 @@ export default async function StaffDetailPage({
 
   const { data: progress } = await db
     .from("academy_staff_module_progress")
-    .select("module_id, status")
+    .select("module_id, status, completed_at, manager_signoff_by, manager_signoff_at")
     .eq("staff_id", staffId);
 
   const progressMap = new Map((progress ?? []).map((p: any) => [p.module_id, p.status]));
@@ -88,18 +88,33 @@ export default async function StaffDetailPage({
   const pathIds = (assignedPaths ?? []).map((ap: any) => ap.academy_training_paths?.id).filter(Boolean);
   const { data: allModules } = await db
     .from("academy_training_modules")
-    .select("id, path_id")
+    .select("id, path_id, title")
     .in("path_id", pathIds.length ? pathIds : ["none"]);
+
+  // Build module progress map with sign-off data
+  const moduleProgressMap = new Map((progress ?? []).map((p: any) => [p.module_id, p]));
 
   const pathProgress = (assignedPaths ?? []).map((ap: any) => {
     const pathModules = (allModules ?? []).filter((m: any) => m.path_id === ap.academy_training_paths?.id);
     const completed = pathModules.filter((m: any) => progressMap.get(m.id) === "completed").length;
     const total = pathModules.length;
+    const modules = pathModules.map((m: any) => {
+      const prog = moduleProgressMap.get(m.id);
+      return {
+        id: m.id,
+        title: m.title || m.id,
+        status: prog?.status ?? "not_started",
+        completed_at: prog?.completed_at ?? null,
+        manager_signoff_at: prog?.manager_signoff_at ?? null,
+        manager_signoff_by: prog?.manager_signoff_by ?? null,
+      };
+    });
     return {
       ...ap.academy_training_paths,
       completed,
       total,
       pct: total > 0 ? Math.round((completed / total) * 100) : 0,
+      modules,
     };
   });
 

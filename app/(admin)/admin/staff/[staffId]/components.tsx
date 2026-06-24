@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { resetStaffPassword } from '@/app/actions/auth'
+import { managerSignOff } from '@/app/actions/training'
 
 const SKILL_NAMES: Record<string, string> = {
   foh_service: 'Front of House Service',
@@ -105,7 +106,7 @@ export function StaffProfileTabs({
 
       {/* Training Progress */}
       {activeTab === 'training' && (
-        <TrainingSection pathProgress={pathProgress} />
+        <TrainingSection pathProgress={pathProgress} staffId={staffId} />
       )}
 
       {/* Certifications */}
@@ -209,31 +210,89 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 /* ──────────────── Training ──────────────── */
-function TrainingSection({ pathProgress }: { pathProgress: any[] }) {
+function TrainingSection({ pathProgress, staffId }: { pathProgress: any[]; staffId: string }) {
+  const [signedOff, setSignedOff] = useState<Set<string>>(new Set())
+  const [pending, startTransition] = useTransition()
+
+  const handleSignOff = (moduleId: string) => {
+    startTransition(async () => {
+      const result = await managerSignOff(staffId, moduleId)
+      if (result.success) {
+        setSignedOff((prev) => new Set([...prev, moduleId]))
+      }
+    })
+  }
+
   return (
-    <div className="bg-cream-soft border border-rule rounded-xl overflow-hidden">
-      <div className="px-5 py-3 border-b border-rule">
-        <h2 className="font-mono text-[10px] tracking-[0.2em] uppercase text-ink-soft">Training Paths</h2>
-      </div>
+    <div className="space-y-4">
       {pathProgress.length === 0 ? (
-        <div className="p-8 text-center text-ink-soft text-sm">No training paths assigned.</div>
+        <div className="rounded-xl border border-dashed border-oatmeal bg-cream-soft/50 p-8 text-center text-ink-soft text-sm">No training paths assigned.</div>
       ) : (
-        <div className="divide-y divide-rule">
-          {pathProgress.map((p: any) => (
-            <div key={p.id} className="px-5 py-4 flex items-center gap-4">
-              <div className="flex-1">
-                <div className="text-ink font-medium">{p.title}</div>
-                <div className="text-xs text-ink-soft">{p.completed} of {p.total} modules</div>
+        pathProgress.map((p: any) => (
+          <div key={p.id} className="bg-cream-soft border border-rule rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-rule flex items-center justify-between">
+              <div>
+                <h3 className="font-mono text-sm font-medium text-ink">{p.title}</h3>
+                <span className="font-mono text-xs text-ink-soft">{p.completed} of {p.total} modules</span>
               </div>
-              <div className="w-32">
-                <div className="w-full bg-oatmeal/30 rounded-full h-1.5">
-                  <div className="bg-sienna h-1.5 rounded-full" style={{ width: `${p.pct}%` }} />
+              <div className="flex items-center gap-3">
+                <div className="w-24">
+                  <div className="w-full bg-oatmeal/30 rounded-full h-1.5">
+                    <div className="bg-sienna h-1.5 rounded-full" style={{ width: `${p.pct}%` }} />
+                  </div>
                 </div>
+                <span className="font-mono text-xs text-ink-soft w-10 text-right">{p.pct}%</span>
               </div>
-              <span className="font-mono text-xs text-ink-soft w-10 text-right">{p.pct}%</span>
             </div>
-          ))}
-        </div>
+            {p.modules && p.modules.length > 0 && (
+              <div className="divide-y divide-rule/50">
+                {p.modules.map((mod: any) => {
+                  const isCompleted = mod.status === 'completed'
+                  const hasSO = mod.manager_signoff_at || signedOff.has(mod.id)
+                  return (
+                    <div key={mod.id} className="px-5 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {isCompleted ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sage shrink-0"><path d="M20 6L9 17l-5-5" /></svg>
+                        ) : mod.status === 'in_progress' ? (
+                          <div className="h-3.5 w-3.5 rounded-full border-2 border-sienna shrink-0" />
+                        ) : (
+                          <div className="h-3.5 w-3.5 rounded-full border-2 border-oatmeal-dk/30 shrink-0" />
+                        )}
+                        <span className="font-mono text-xs text-ink truncate">{mod.title}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <span className={`rounded-full px-2 py-0.5 font-mono text-[10px] tracking-wider ${
+                          isCompleted ? 'bg-sage/10 text-sage' :
+                          mod.status === 'in_progress' ? 'bg-sienna/10 text-sienna' :
+                          'bg-oatmeal/30 text-ink-soft'
+                        }`}>
+                          {mod.status.replace('_', ' ')}
+                        </span>
+                        {isCompleted && hasSO && (
+                          <span className="flex items-center gap-1 rounded-full bg-sage/10 px-2 py-0.5 font-mono text-[10px] text-sage">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
+                            Signed off
+                          </span>
+                        )}
+                        {isCompleted && !hasSO && (
+                          <button
+                            type="button"
+                            onClick={() => handleSignOff(mod.id)}
+                            disabled={pending}
+                            className="rounded-lg border border-sienna/30 bg-sienna/5 px-3 py-1 font-mono text-[10px] font-medium text-sienna transition hover:bg-sienna/10 disabled:opacity-50"
+                          >
+                            Sign Off
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        ))
       )}
     </div>
   )

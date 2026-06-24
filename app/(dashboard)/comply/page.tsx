@@ -8,6 +8,13 @@ export default async function ComplyHubPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // Get staff role + admin status for role-based filtering
+  const { data: staff } = await supabase
+    .from('academy_staff')
+    .select('role, is_admin')
+    .eq('id', user.id)
+    .single()
+
   // Certifications
   const { data: certifications } = await supabase
     .from('academy_certifications')
@@ -43,12 +50,19 @@ export default async function ComplyHubPage() {
     return s === 'sent' || s === 'viewed'
   })
 
-  // Compliance handbook sections
-  const { data: handbookSections } = await supabase
+  // Compliance handbook sections with role-based filtering
+  const isAdminOrManager = staff?.is_admin || staff?.role === 'manager'
+  let handbookQuery = supabase
     .from('academy_handbook_sections')
-    .select('id, title, slug, category')
+    .select('id, title, slug, category, role_visibility')
     .in('category', ['policies', 'emergency', 'procedures'])
     .order('sort_order')
+
+  if (!isAdminOrManager && staff?.role) {
+    handbookQuery = handbookQuery.or(`role_visibility.is.null,role_visibility.cs.{${staff.role}}`)
+  }
+
+  const { data: handbookSections } = await handbookQuery
 
   return (
     <div className="mx-auto max-w-4xl">

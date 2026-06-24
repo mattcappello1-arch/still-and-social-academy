@@ -51,6 +51,14 @@ export default async function AdminLayout({
           </div>
 
           <div className="flex items-center gap-4">
+            <form action="/admin/search" method="GET" className="hidden sm:block">
+              <input
+                type="text"
+                name="q"
+                placeholder="Search..."
+                className="w-48 rounded-lg border border-rule bg-white/60 px-3 py-1.5 font-mono text-xs text-ink placeholder:text-ink-soft/50 focus:border-sienna/30 focus:outline-none focus:w-64 transition-all"
+              />
+            </form>
             <span className="font-mono text-sm text-ink">{displayName}</span>
             <LogoutButton />
           </div>
@@ -96,6 +104,7 @@ function AdminSidebarContent() {
         <SidebarSection label="Comply">
           <AdminSidebarLinkClient href="/admin/certifications" label="Certifications" />
           <AdminSidebarLinkClient href="/admin/signing" label="Signing" />
+          <AdminSidebarLinkClient href="/admin/signoffs" label="Sign-Offs" />
           <AdminSidebarLinkClient href="/admin/documents" label="Documents" />
         </SidebarSection>
 
@@ -113,6 +122,7 @@ function AdminSidebarContent() {
 
         <SidebarSection label="Insights">
           <AdminSidebarLinkClient href="/admin/analytics" label="Analytics" />
+          <AdminSidebarLinkClient href="/admin/search" label="Admin Search" />
         </SidebarSection>
 
         <SidebarSection label="Staff View">

@@ -105,6 +105,14 @@ export default async function AdminDashboard() {
     .select('*', { count: 'exact', head: true })
     .in('status', ['sent', 'viewed'])
 
+  // Pending manager sign-offs on completed modules
+  const { count: pendingModuleSignOffs } = await supabase
+    .from('academy_staff_module_progress')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'completed')
+    .is('manager_signoff_at', null)
+    .not('completed_at', 'is', null)
+
   // Overdue modules (in_progress for more than 30 days)
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -195,7 +203,7 @@ export default async function AdminDashboard() {
         {/* COMPLY */}
         <div className="rounded-xl border border-rule bg-white/60 p-5">
           <p className="mb-3 font-mono text-[10px] tracking-widest text-ink-soft uppercase">Comply</p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <p className={`font-serif text-3xl font-light ${(expiringCerts?.length ?? 0) > 0 ? 'text-sienna' : 'text-ink'}`}>
                 {expiringCerts?.length ?? 0}
@@ -204,7 +212,17 @@ export default async function AdminDashboard() {
             </div>
             <div>
               <p className="font-serif text-3xl font-light text-ink">{pendingSignOffs ?? 0}</p>
-              <p className="font-mono text-xs text-ink-soft mt-1">pending sign-offs</p>
+              <p className="font-mono text-xs text-ink-soft mt-1">pending document sign-offs</p>
+            </div>
+            <div>
+              <a href="/admin/signoffs" className="group">
+                <p className={`font-serif text-3xl font-light ${(pendingModuleSignOffs ?? 0) > 0 ? 'text-sienna' : 'text-ink'}`}>
+                  {pendingModuleSignOffs ?? 0}
+                </p>
+                <p className="font-mono text-xs text-ink-soft mt-1 group-hover:text-sienna transition">
+                  module sign-offs pending
+                </p>
+              </a>
             </div>
           </div>
         </div>

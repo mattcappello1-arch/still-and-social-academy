@@ -1,8 +1,56 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { checkAndAwardAchievements } from '@/lib/utils/achievements'
 import { createNotification } from '@/app/actions/notifications'
+
+export async function managerSignOff(staffId: string, moduleId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  // Verify admin
+  const { data: staff } = await supabase
+    .from('academy_staff')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single()
+  if (!staff?.is_admin) return { error: 'Not authorized' }
+
+  const db = await createAdminClient()
+  const { error } = await db.from('academy_staff_module_progress').update({
+    manager_signoff_by: user.id,
+    manager_signoff_at: new Date().toISOString(),
+  }).eq('staff_id', staffId).eq('module_id', moduleId)
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function bulkManagerSignOff(staffId: string, moduleIds: string[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: staff } = await supabase
+    .from('academy_staff')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single()
+  if (!staff?.is_admin) return { error: 'Not authorized' }
+
+  const db = await createAdminClient()
+  const now = new Date().toISOString()
+
+  for (const moduleId of moduleIds) {
+    await db.from('academy_staff_module_progress').update({
+      manager_signoff_by: user.id,
+      manager_signoff_at: now,
+    }).eq('staff_id', staffId).eq('module_id', moduleId)
+  }
+
+  return { success: true }
+}
 
 export async function startModule(moduleId: string) {
   const supabase = await createClient()
