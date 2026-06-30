@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
-import { LogoutButton, MobileSidebarToggle, Sidebar, SidebarLinkClient, SidebarSection } from './components'
+import { LogoutButton, MobileSidebarToggle, Sidebar, SidebarLinkClient } from './components'
 
 export default async function DashboardLayout({
   children,
@@ -53,7 +53,7 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-3">
             <MobileSidebarToggle />
             <span className="font-mono text-xs tracking-wider text-ink-soft uppercase">
-              OS
+              Academy
             </span>
           </div>
 
@@ -109,32 +109,24 @@ function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
           className="invert opacity-80"
         />
         <span className="font-serif text-lg font-light tracking-wide text-cream">
-          OS
+          Academy
         </span>
       </div>
 
       <nav className="flex-1 px-3 py-4 overflow-y-auto" role="navigation" aria-label="Main navigation">
-        <SidebarLinkClient href="/passport" label="Home" iconPath={SIDEBAR_ICONS.home} />
-
-        <div className="mt-4 mb-1 px-3">
-          <p className="font-mono text-[10px] tracking-widest text-cream/40 uppercase">Sections</p>
-        </div>
-        <SidebarLinkClient href="/learn" label="Learn" iconPath={SIDEBAR_ICONS.book} />
-        <SidebarLinkClient href="/operate" label="Operate" iconPath={SIDEBAR_ICONS['check-square']} />
-        <SidebarLinkClient href="/comply" label="Comply" iconPath={SIDEBAR_ICONS.award} />
-        <SidebarLinkClient href="/profile" label="People" iconPath={SIDEBAR_ICONS.user} />
-        <SidebarLinkClient href="/develop" label="Develop" iconPath={SIDEBAR_ICONS.trending} />
+        <SidebarLinkClient href="/passport" label="My Training" iconPath={SIDEBAR_ICONS.home} />
+        <SidebarLinkClient href="/foundation" label="Foundation" iconPath={SIDEBAR_ICONS.star} />
+        <SidebarLinkClient href="/training" label="Training" iconPath={SIDEBAR_ICONS.book} />
+        <SidebarLinkClient href="/profile" label="Profile" iconPath={SIDEBAR_ICONS.user} />
 
         {isAdmin && (
           <>
-            <div className="mt-4 mb-1 px-3">
+            <div className="mt-6 mb-1 px-3">
               <p className="font-mono text-[10px] tracking-widest text-cream/40 uppercase">Admin</p>
             </div>
             <SidebarLinkClient href="/admin" label="Dashboard" iconPath={SIDEBAR_ICONS.grid} />
             <SidebarLinkClient href="/admin/staff" label="Staff" iconPath={SIDEBAR_ICONS.users} />
-            <SidebarLinkClient href="/admin/training" label="Training" iconPath={SIDEBAR_ICONS.layers} />
-            <SidebarLinkClient href="/admin/signing" label="Documents" iconPath={SIDEBAR_ICONS.pen} />
-            <SidebarLinkClient href="/admin/analytics" label="Analytics" iconPath={SIDEBAR_ICONS['bar-chart']} />
+            <SidebarLinkClient href="/admin/training" label="Manage Training" iconPath={SIDEBAR_ICONS.layers} />
           </>
         )}
       </nav>
