@@ -93,6 +93,13 @@ function AdminSidebarContent() {
         <AdminSidebarLinkClient href="/admin/signoffs" label="Sign-Offs" />
 
         <div className="mt-6 mb-1 px-3">
+          <p className="font-mono text-[10px] tracking-widest text-cream/40 uppercase">Shop</p>
+        </div>
+        <AdminSidebarLinkClient href="/admin/orders" label="Orders" />
+        <AdminSidebarLinkClient href="/admin/products" label="Products" />
+        <AdminSidebarLinkClient href="/admin/subscribers" label="Subscribers" />
+
+        <div className="mt-6 mb-1 px-3">
           <p className="font-mono text-[10px] tracking-widest text-cream/40 uppercase">Staff View</p>
         </div>
         <AdminSidebarLinkClient href="/passport" label="My Training" />
